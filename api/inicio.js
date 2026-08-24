@@ -75,8 +75,8 @@ module.exports = async (req, res) => {
     // ---------- VENTAS: por cobrar ----------
     {
       const H = ventas.headers, R = ventas.rows;
-      const cPC = col(H, 'Por Cobrar');
-      const cTotal = col(H, 'Total');
+      const cPC = col(H, 'Cuentas por Cobrar', 'Por Cobrar');
+      const cTotal = col(H, 'Subtotal', 'Total');
       const cCliente = col(H, 'Cliente');
       const cFecha = col(H, 'Fecha');
 

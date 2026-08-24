@@ -38,14 +38,15 @@ api/dashboard.js      Agregados y gráficas del Dashboard
 
 ## Lo primero que tienes que hacer
 
-Este proyecto salió del panel de otra empresa, así que la marca ya está cambiada pero **las
-hojas todavía no están conectadas**. Faltan exactamente dos cosas:
+La hoja de usuarios **ya está conectada** (`1C2-5HbgpKWGeGwgyL2ov0_7KTD5nYAFQ69UpNjFUTQE`,
+pestaña `Usuarios ERP`). Falta:
 
-1. En `lib/core.js` → `USERS_SHEET`, cambiar `PEGA_EL_ID_DE_LA_HOJA_DE_USUARIOS` por el ID real
-   (o cargar la variable de entorno `USERS_SHEET_ID` en Vercel).
+1. Compartir esa hoja **como Editor** con el `client_email` de la cuenta de servicio. Sin esto
+   el panel no la puede leer, aunque el ID esté bien.
 2. En `lib/core.js` → `SHEETS`, descomentar las áreas que ya existan y pegarles su ID.
 
-Mientras eso no se haga, el login responde con un mensaje que te dice justo qué falta.
+Si la pestaña llegara a cambiar de nombre, el panel busca sola la primera que diga "usuario",
+así que no se rompe el login.
 
 ---
 
@@ -65,9 +66,9 @@ Sin este paso la app no puede leer nada. Copia el `client_email` del JSON (termi
 `.iam.gserviceaccount.com`) y compártele **como Editor** cada hoja de cálculo que vayas a
 conectar, incluida la de usuarios.
 
-### 3) Hoja de usuarios
+### 3) Hoja de usuarios — ya lista
 
-Crea una hoja de cálculo con una pestaña llamada **`Usuarios ERP`**. Los encabezados de la
+La hoja ya existe y ya está apuntada desde `lib/core.js`. Sus encabezados de la
 fila 1 se leen **por nombre, no por posición**, así que puedes agregar, mover o quitar columnas
 (Correo, Comentarios, Teléfono) sin tocar el código. Solo `usuario` y `contraseña` son
 obligatorias; `nombre` y `rol` son opcionales.
@@ -76,7 +77,7 @@ Encabezados mínimos:
 
 | usuario | contraseña | nombre | rol |
 |---|---|---|---|
-| admin | LaClaveQueElijas | Administrador | admin |
+| ric | (tu contraseña) | Ricardo Salido | Admin |
 | recepcion | OtraClave | Recepción | lector |
 
 - El **usuario** no distingue mayúsculas; la **contraseña** sí.
@@ -85,8 +86,8 @@ Encabezados mínimos:
   Compártela únicamente con quien administre el sistema.
 - Para dar de alta o de baja a alguien, editas la hoja. No hay que tocar código.
 
-Copia el ID de esa hoja (lo que va entre `/d/` y `/edit` en la URL) y pégalo en
-`lib/core.js` → `USERS_SHEET`, o cárgalo como variable de entorno `USERS_SHEET_ID`.
+Para agregar a alguien más, agrega su fila. Para sacarlo, borra su fila: queda fuera en el
+siguiente login, sin tocar código.
 
 ### 4) Conecta tus áreas
 
@@ -122,14 +123,14 @@ git push -u origin main
 ### 6) Despliega en Vercel
 
 1. **vercel.com → Add New → Project**, importa el repo. Framework preset: **Other**. Deploy.
-2. **Settings → Environment Variables**, carga estas cuatro:
+2. **Settings → Environment Variables**, carga estas tres:
 
 | Variable | Valor |
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | el `client_email` del JSON |
 | `GOOGLE_PRIVATE_KEY` | la `private_key` del JSON, pegada tal cual (con los `\n`) |
 | `SESSION_SECRET` | una frase larga e inventada por ti |
-| `USERS_SHEET_ID` | el ID de la hoja de usuarios |
+| `USERS_SHEET_ID` | *(opcional)* el ID ya está en `lib/core.js`; úsala solo si quieres cambiarlo sin tocar código |
 
    Alternativa más simple para las dos primeras: una sola variable `GOOGLE_CREDENTIALS` con el
    JSON completo pegado adentro.
@@ -193,6 +194,48 @@ const LOOKUPS = {
 
 `AREA_ROW_FILTERS` hace que un área muestre solo parte de una hoja. Cuentas por Cobrar ya viene
 configurada así: lee la hoja de Ventas y muestra únicamente las filas con saldo pendiente.
+
+---
+
+## Ingresos: cuatro fuentes en una sola hoja
+
+Todo vive en `Ventas 2026` (archivo `181v9VGg...P3Zs`), una tabla plana con la columna
+**`Línea de Negocio`**. El panel no duplica datos: las cinco áreas del menú leen la misma
+pestaña y solo cambia el filtro.
+
+| Área del menú | Filtro |
+|---|---|
+| Todas las fuentes | sin filtro |
+| Consultoría | `Línea de Negocio = Consultoría` |
+| Inversiones | `= Inversiones` (Prestadero, Briq, Yo te presto) |
+| Préstamos | `= Préstamos` |
+| Puerto Escondido | `= Dividendos` |
+| Cuentas por Cobrar | `Cuentas por Cobrar > 0` |
+
+Se configura en `lib/core.js` → `AREA_ROW_FILTERS`. Si aparece una fuente nueva, agregas
+el ítem al `MENU`, la línea al `SHEETS` y su filtro. Nada más.
+
+**Ingresos = Subtotal, sin IVA.** Así es como cuadra tu Resumen Ejecutivo
+($1,241,271.47 en 2026). El total con IVA se muestra aparte, en su propio KPI.
+
+**Columnas calculadas**: `Mes`, `Año`, `Total` y `Cuentas por Cobrar` se declaran en
+`FORMULA_FIELDS`, así que el panel las muestra pero nunca las pisa. `Cobrado` se dejó
+**fuera** a propósito para poder registrar pagos parciales desde el panel — para eso hay que
+quitarle la fórmula `=J3` en la hoja.
+
+### Pestaña pendiente: Puerto Escondido
+
+En `Ventas 2026` solo entra el retorno mensual. El seguimiento de la recuperación vive en
+`Call Mary`, que es un tablero de celdas sueltas y el panel no puede leerlo. Crea una pestaña
+nueva llamada **`Puerto Escondido`** con estos encabezados en la fila 1:
+
+| Fecha | Concepto | Tipo | Monto | Comentarios |
+|---|---|---|---|---|
+| 2024-04-12 | Pago de deuda | Recuperación | 15000 | |
+| 2024-07-18 | Aportación inicial | Aportación | 8058857.50 | Equity + deuda |
+
+`Tipo` toma dos valores: `Aportación` y `Recuperación`. Con eso el panel puede mostrar cuánto
+se aportó, cuánto se lleva recuperado y el porcentaje, sin que nadie actualice nada a mano.
 
 ---
 

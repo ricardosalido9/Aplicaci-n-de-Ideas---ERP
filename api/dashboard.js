@@ -84,22 +84,46 @@ module.exports = async (req, res) => {
 
     const out = {};
 
-    // VENTAS -> filas compactas: d(fecha num) f(fecha texto) t(total) c(cobrado) p(por cobrar) v(vendedor) s(servicio) cl(cliente)
+    // VENTAS -> filas compactas. Una fila por registro de la hoja "Ventas 2026":
+    //   d  fecha como número AAAAMMDD      f   fecha en texto
+    //   sb Subtotal (sin IVA)              iva IVA
+    //   t  Total (con IVA)                 c   Cobrado          p  Cuentas por Cobrar
+    //   l  Línea de Negocio                cl  Cliente/Plataforma
+    //   ds Descripción/Concepto            v   Vendedor (si la hoja lo trae)
+    // La línea de negocio es la que separa las fuentes de ingreso:
+    // Consultoría, Inversiones, Préstamos y Dividendos.
     {
       const H = ventas.headers;
-      const cF = col(H, 'Fecha'), cT = col(H, 'Total'), cC = col(H, 'Total Cobrado');
-      const cP = col(H, 'Por Cobrar', 'Cuentas por Cobrar'), cV = col(H, 'Vendedor');
-      const cS = col(H, 'Tipo de Servicio'), cCl = col(H, 'Cliente');
+      const cF  = col(H, 'Fecha');
+      const cSb = col(H, 'Subtotal', 'Importe', 'Monto');
+      const cIv = col(H, 'IVA');
+      const cT  = col(H, 'Total');
+      const cC  = col(H, 'Cobrado', 'Total Cobrado');
+      const cP  = col(H, 'Cuentas por Cobrar', 'Por Cobrar');
+      const cL  = col(H, 'Línea de Negocio', 'Linea de Negocio', 'Línea', 'Fuente de Ingreso');
+      const cCl = col(H, 'Cliente', 'Nombre');
+      const cD  = col(H, 'Descripción', 'Descripcion', 'Concepto');
+      const cV  = col(H, 'Vendedor', 'Responsable');
       out.ventas = ventas.rows.map(r => ({
-        d: cF ? fechaNum(r[cF]) : null,
-        f: cF ? txt(r[cF]) : '',
-        t: cT ? num(r[cT]) : null,
-        c: cC ? num(r[cC]) : null,
-        p: cP ? num(r[cP]) : null,
-        v: cV ? txt(r[cV]) : '',
-        s: cS ? txt(r[cS]) : '',
-        cl: cCl ? txt(r[cCl]) : ''
+        d:  cF  ? fechaNum(r[cF]) : null,
+        f:  cF  ? txt(r[cF]) : '',
+        sb: cSb ? num(r[cSb]) : null,
+        iva:cIv ? num(r[cIv]) : null,
+        t:  cT  ? num(r[cT]) : null,
+        c:  cC  ? num(r[cC]) : null,
+        p:  cP  ? num(r[cP]) : null,
+        l:  cL  ? (txt(r[cL]) || 'Sin clasificar') : '',
+        cl: cCl ? txt(r[cCl]) : '',
+        ds: cD  ? txt(r[cD]) : '',
+        v:  cV  ? txt(r[cV]) : ''
       }));
+      // Catálogo de líneas presentes, en orden de mayor a menor ingreso.
+      const porLinea = {};
+      out.ventas.forEach(v => {
+        if (!v.l) return;
+        porLinea[v.l] = (porLinea[v.l] || 0) + (v.sb !== null ? v.sb : (v.t || 0));
+      });
+      out.lineas = Object.keys(porLinea).sort((a, b) => porLinea[b] - porLinea[a]);
     }
 
     // CONTRATOS -> d(fecha num) f(fecha texto) t(tipo) n(monto)

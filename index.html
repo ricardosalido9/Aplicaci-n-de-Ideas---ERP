@@ -250,6 +250,24 @@
 
   /* ============ DASHBOARD ============ */
   #dashView { display:none; }
+  /* Pestañas por fuente de ingreso */
+  .line-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 18px; }
+  .line-tabs button { padding:9px 15px; font-size:13.5px; border-radius:999px; }
+  .line-tabs button.on { background:var(--primary); border-color:var(--primary);
+    color:#fff; font-weight:500; }
+  .line-tabs button.on:hover { background:var(--primary-600); border-color:var(--primary-600); color:#fff; }
+  .line-tabs button .n { opacity:.55; margin-left:6px; font-size:12px; }
+  /* Tarjetas comparativas de línea de negocio */
+  .line-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
+  .line-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 17px; box-shadow:var(--shadow-sm); }
+  .line-card .lname { font-size:12px; letter-spacing:.5px; text-transform:uppercase;
+    color:var(--muted); font-weight:500; }
+  .line-card .lval { font-size:22px; font-weight:600; margin:6px 0 2px; letter-spacing:-.4px; }
+  .line-card .lsub { font-size:12.5px; color:var(--slate); }
+  .line-card .lshare { margin-top:10px; height:6px; border-radius:999px; background:var(--accent-soft); }
+  .line-card .lshare span { display:block; height:100%; border-radius:999px; background:var(--accent); }
+  .line-card .lpc { font-size:12px; color:var(--warn); margin-top:8px; }
   .dash-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:24px; }
   .dash-bar .lb { font-size:12px; color:var(--muted); font-weight:500; letter-spacing:.5px; text-transform:uppercase; }
   .dash-bar input[type=date] { font:inherit; border:1px solid var(--line); border-radius:10px;
@@ -1396,6 +1414,31 @@
     return t;
   }
 
+  var dashLinea = '';   // '' = todas las fuentes de ingreso
+
+  // Suma el campo pedido, cayendo a Total si no hay Subtotal en la hoja.
+  function ingreso(r) { return (r.sb !== null && r.sb !== undefined) ? r.sb : (r.t || 0); }
+  function sumaIngreso(rows) {
+    var t = 0; rows.forEach(function (r) { t += ingreso(r) || 0; }); return t;
+  }
+  function agruparIngreso(rows, campo) {
+    var o = {};
+    rows.forEach(function (r) {
+      var k = r[campo]; if (!k) return;
+      o[k] = (o[k] || 0) + (ingreso(r) || 0);
+    });
+    return o;
+  }
+  function porMesIngreso(rows) {
+    var o = {};
+    rows.forEach(function (r) {
+      if (!r.d) return;
+      var k = String(r.d).slice(0, 4) + '-' + String(r.d).slice(4, 6);
+      o[k] = (o[k] || 0) + (ingreso(r) || 0);
+    });
+    return o;
+  }
+
   function renderDashboard() {
     var d = dashData; if (!d) return;
     var V = (d.ventas || []).filter(function (r) { return enRango(r.d); });
@@ -1403,12 +1446,22 @@
     var I = (d.incidencias || []).filter(function (r) { return enRango(r.d); });
     var c = d.colaboradores || {}, p = d.proveedores || {}, inv = d.inventarios || {};
 
-    var totalVentas = suma(V, 't'), cobrado = suma(V, 'c');
-    // Por cobrar: total pendiente actual (coincide con la subsección Cuentas por Cobrar)
-    var porCobrar = suma(d.ventas || [], 'p');
-    var montoContratos = suma(M, 'n');
+    // Ingresos = Subtotal (sin IVA), que es como cuadra el Resumen Ejecutivo de la hoja.
+    var lineas = d.lineas || [];
+    if (dashLinea && lineas.indexOf(dashLinea) === -1) dashLinea = '';
+    var VL = dashLinea ? V.filter(function (r) { return r.l === dashLinea; }) : V;
+
+    var ingresos = sumaIngreso(VL);
+    var conIva   = suma(VL, 't');
+    var cobrado  = suma(VL, 'c');
+    // Por cobrar: saldo pendiente actual, sin recortar por periodo, para que
+    // cuadre con la pestaña de Cuentas por Cobrar.
+    var basePC   = dashLinea ? (d.ventas || []).filter(function (r) { return r.l === dashLinea; }) : (d.ventas || []);
+    var porCobrar = suma(basePC, 'p');
+    var totalGeneral = sumaIngreso(V) || 1;
+
     var h = '<div class="hero"><h2>Dashboard</h2>' +
-            '<p>Resumen de la operación</p></div>';
+            '<p>Ingresos por fuente</p></div>';
 
     // --- Filtro de fechas ---
     var hayFiltro = dashRange.from || dashRange.to;
@@ -1420,38 +1473,71 @@
       '<button type="button" id="dApply" class="primary">Aplicar</button>' +
       (hayFiltro ? '<button type="button" id="dClear">Ver todo</button>' : '') +
       '<span class="dash-hint">' +
-        (hayFiltro ? 'Filtrando ventas, contratos e incidencias' : 'Mostrando todos los periodos') +
+        (hayFiltro ? 'Filtrando por fecha' : 'Mostrando todos los periodos') +
       '</span></div>';
 
-    // --- KPIs ---
-    h += '<div class="dash-section"><h3>Resumen general</h3><div class="kpi-grid">' +
-      '<div class="kpi dark"><div class="k">Ventas totales</div><div class="v" title="' + esc(formatMoney(totalVentas)) + '">' +
-        esc(fmtMoneyShort(totalVentas)) + '</div><div class="s">' + fmtNum(V.length) + ' operaciones</div></div>' +
+    // --- Pestañas por fuente de ingreso ---
+    if (lineas.length) {
+      h += '<div class="line-tabs"><button type="button" data-linea=""' +
+           (dashLinea ? '' : ' class="on"') + '>Total<span class="n">' + fmtNum(V.length) + '</span></button>';
+      lineas.forEach(function (L) {
+        var n = V.filter(function (r) { return r.l === L; }).length;
+        h += '<button type="button" data-linea="' + esc(L) + '"' +
+             (dashLinea === L ? ' class="on"' : '') + '>' + esc(L) +
+             '<span class="n">' + fmtNum(n) + '</span></button>';
+      });
+      h += '</div>';
+    }
+
+    // --- KPIs de la selección ---
+    var etiqueta = dashLinea || 'todas las fuentes';
+    h += '<div class="dash-section"><h3>' + esc(dashLinea || 'Resumen general') + '</h3><div class="kpi-grid">' +
+      '<div class="kpi dark"><div class="k">Ingresos (sin IVA)</div><div class="v" title="' + esc(formatMoney(ingresos)) + '">' +
+        esc(fmtMoneyShort(ingresos)) + '</div><div class="s">' + fmtNum(VL.length) + ' registros</div></div>' +
+      '<div class="kpi"><div class="k">Con IVA</div><div class="v" title="' + esc(formatMoney(conIva)) + '">' +
+        esc(fmtMoneyShort(conIva)) + '</div></div>' +
       '<div class="kpi"><div class="k">Cobrado</div><div class="v" title="' + esc(formatMoney(cobrado)) + '">' +
         esc(fmtMoneyShort(cobrado)) + '</div></div>' +
       '<div class="kpi"><div class="k">Por cobrar</div><div class="v" title="' + esc(formatMoney(porCobrar)) + '">' +
-        esc(fmtMoneyShort(porCobrar)) + '</div></div>' +
-      '<div class="kpi"><div class="k">Contratos</div><div class="v">' + fmtNum(M.length) +
-        '</div><div class="s">' + esc(fmtMoneyShort(montoContratos)) + ' contratado</div></div>' +
-      '<div class="kpi"><div class="k">Colaboradores</div><div class="v">' + fmtNum(c.activos) +
-        '</div><div class="s">activos de ' + fmtNum(c.registros) + '</div></div>' +
-      '<div class="kpi"><div class="k">Nómina mensual</div><div class="v" title="' + esc(formatMoney(c.nomina)) + '">' +
-        esc(fmtMoneyShort(c.nomina)) + '</div><div class="s">solo activos</div></div>' +
-      '<div class="kpi"><div class="k">Proveedores</div><div class="v">' + fmtNum(p.registros) + '</div></div>' +
-      '<div class="kpi"><div class="k">Activos en inventario</div><div class="v">' + fmtNum(inv.registros) + '</div></div>' +
+        esc(fmtMoneyShort(porCobrar)) + '</div><div class="s">saldo actual</div></div>' +
+      (dashLinea
+        ? '<div class="kpi"><div class="k">Participación</div><div class="v">' +
+          esc((ingresos / totalGeneral * 100).toFixed(1)) + '%</div><div class="s">del ingreso total</div></div>'
+        : '<div class="kpi"><div class="k">Fuentes activas</div><div class="v">' + fmtNum(lineas.length) +
+          '</div><div class="s">líneas de negocio</div></div>') +
       '</div></div>';
 
-    // --- Ventas ---
-    h += '<div class="dash-section"><h3>Ventas</h3><div class="dash-cols">' +
-      '<div class="panel"><h4>Ventas por mes</h4><div class="panel-body">' +
-        chartHTML(porMesSuma(V, 't'), { money: true }) + '</div></div>' +
-      '<div class="panel"><h4>Por vendedor</h4><div class="panel-body">' +
-        barsHTML(agruparSuma(V, 'v', 't'), { money: true }) + '</div></div>' +
-      '<div class="panel"><h4>Por tipo de servicio</h4><div class="panel-body">' +
-        barsHTML(agruparSuma(V, 's', 't'), { money: true }) + '</div></div>' +
+    // --- Comparativo entre fuentes (solo en la vista Total) ---
+    if (!dashLinea && lineas.length) {
+      var cards = lineas.map(function (L) {
+        var rows = V.filter(function (r) { return r.l === L; });
+        var m = sumaIngreso(rows);
+        var pc = suma((d.ventas || []).filter(function (r) { return r.l === L; }), 'p');
+        var share = Math.round(m / totalGeneral * 100);
+        return '<div class="line-card">' +
+          '<div class="lname">' + esc(L) + '</div>' +
+          '<div class="lval" title="' + esc(formatMoney(m)) + '">' + esc(fmtMoneyShort(m)) + '</div>' +
+          '<div class="lsub">' + fmtNum(rows.length) + ' registros · ' + share + '% del total</div>' +
+          '<div class="lshare"><span style="width:' + Math.max(2, share) + '%"></span></div>' +
+          (pc > 0 ? '<div class="lpc">' + esc(fmtMoneyShort(pc)) + ' por cobrar</div>' : '') +
+          '</div>';
+      }).join('');
+      h += '<div class="dash-section"><h3>Comparativo por fuente</h3>' +
+           '<div class="line-grid">' + cards + '</div></div>';
+    }
+
+    // --- Detalle de la selección ---
+    h += '<div class="dash-section"><h3>Detalle · ' + esc(etiqueta) + '</h3><div class="dash-cols">' +
+      '<div class="panel"><h4>Ingresos por mes</h4><div class="panel-body">' +
+        chartHTML(porMesIngreso(VL), { money: true }) + '</div></div>' +
+      '<div class="panel"><h4>' + (dashLinea === 'Inversiones' ? 'Por plataforma' : 'Por cliente') + '</h4><div class="panel-body">' +
+        barsHTML(agruparIngreso(VL, 'cl'), { money: true, limit: 10 }) + '</div></div>' +
+      '<div class="panel"><h4>' + (dashLinea ? 'Por concepto' : 'Por fuente de ingreso') + '</h4><div class="panel-body">' +
+        barsHTML(agruparIngreso(VL, dashLinea ? 'ds' : 'l'), { money: true, limit: 10 }) + '</div></div>' +
       '</div></div>';
 
-    // --- Clientes y personal ---
+    // --- Clientes y personal (solo si esas hojas ya están conectadas) ---
+    if (M.length || (c.registros || 0) || I.length) {
     h += '<div class="dash-section"><h3>Clientes y personal</h3><div class="dash-cols">' +
       '<div class="panel"><h4>Contratos por tipo</h4><div class="panel-body">' +
         barsHTML(agrupar(M, 't'), { limit: 8 }) + '</div></div>' +
@@ -1460,8 +1546,10 @@
       '<div class="panel"><h4>Incidencias por tipo</h4><div class="panel-body">' +
         barsHTML(agrupar(I, 't'), { limit: 8 }) + '</div></div>' +
       '</div></div>';
+    }
 
-    // --- Proveedores e inventario ---
+    // --- Proveedores e inventario (solo si esas hojas ya están conectadas) ---
+    if ((p.registros || 0) || (inv.registros || 0)) {
     h += '<div class="dash-section"><h3>Proveedores e inventario</h3><div class="dash-cols">' +
       '<div class="panel"><h4>Proveedores por categoría</h4><div class="panel-body">' +
         barsHTML(p.porCategoria, { limit: 8 }) + '</div></div>' +
@@ -1470,14 +1558,17 @@
       '<div class="panel"><h4>Incidencias por mes</h4><div class="panel-body">' +
         chartHTML(porMesSuma(I, null)) + '</div></div>' +
       '</div></div>';
+    }
 
     // --- Últimos movimientos ---
     var vOrd = V.filter(function (r) { return r.d; }).sort(function (a, b) { return b.d - a.d; }).slice(0, 8);
     var iOrd = I.filter(function (r) { return r.d; }).sort(function (a, b) { return b.d - a.d; }).slice(0, 8);
-    var vRows = vOrd.map(function (r) {
+    var vOrdL = (dashLinea ? VL : V).filter(function (r) { return r.d; })
+      .sort(function (a, b) { return b.d - a.d; }).slice(0, 8);
+    var vRows = vOrdL.map(function (r) {
       return '<tr><td>' + esc(formatDateCell(r.f)) + '</td><td title="' + esc(r.cl) + '">' + esc(r.cl) +
-             '</td><td>' + esc(r.s) + '</td><td class="num">' +
-             esc(r.t !== null ? formatMoney(r.t) : '') + '</td></tr>';
+             '</td><td>' + esc(dashLinea ? r.ds : r.l) + '</td><td class="num">' +
+             esc(formatMoney(ingreso(r))) + '</td></tr>';
     }).join('');
     var iRows = iOrd.map(function (r) {
       return '<tr><td>' + esc(formatDateCell(r.f)) + '</td><td title="' + esc(r.c) + '">' + esc(r.c) +
@@ -1485,12 +1576,13 @@
     }).join('');
 
     h += '<div class="dash-section"><h3>Últimos movimientos</h3><div class="dash-cols">' +
-      '<div class="panel"><h4>Ventas recientes</h4><div class="panel-body">' +
-        (vRows ? '<table class="mini-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th style="text-align:right">Monto</th></tr></thead><tbody>' + vRows + '</tbody></table>'
+      '<div class="panel"><h4>Movimientos recientes</h4><div class="panel-body">' +
+        (vRows ? '<table class="mini-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>' +
+                 (dashLinea ? 'Concepto' : 'Fuente') + '</th><th style="text-align:right">Ingreso</th></tr></thead><tbody>' + vRows + '</tbody></table>'
                : '<div class="dash-empty">Sin datos en el periodo.</div>') + '</div></div>' +
-      '<div class="panel"><h4>Incidencias recientes</h4><div class="panel-body">' +
-        (iRows ? '<table class="mini-table"><thead><tr><th>Fecha</th><th>Colaborador</th><th>Incidencia</th></tr></thead><tbody>' + iRows + '</tbody></table>'
-               : '<div class="dash-empty">Sin datos en el periodo.</div>') + '</div></div>' +
+      (iRows ? '<div class="panel"><h4>Incidencias recientes</h4><div class="panel-body">' +
+        '<table class="mini-table"><thead><tr><th>Fecha</th><th>Colaborador</th><th>Incidencia</th></tr></thead><tbody>' +
+        iRows + '</tbody></table></div></div>' : '') +
       '</div></div>';
 
     document.getElementById('dashView').innerHTML = h;
@@ -1503,6 +1595,14 @@
     var clr = document.getElementById('dClear');
     if (clr) clr.addEventListener('click', function () {
       dashRange = { from: '', to: '' }; renderDashboard();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.line-tabs button'), function (b) {
+      b.addEventListener('click', function () {
+        dashLinea = b.getAttribute('data-linea') || '';
+        renderDashboard();
+        var dv = document.getElementById('dashView');
+        if (dv && dv.scrollIntoView) dv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 
