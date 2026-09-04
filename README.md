@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-008**
+**Versión 2026.08.24-009**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -381,6 +381,18 @@ egresos no vienen de la operación.
 permite explicar una diferencia en vez de discutirla: cuántos renglones tiene la hoja, cuántos
 entraron, cuántos se quedaron fuera por fecha ilegible, por año, por traspaso. Cuando el total
 no coincide con el que se ve en la pestaña, la diferencia está casi siempre ahí.
+
+### Capturar un movimiento
+
+El botón **"+ Agregar movimiento"** escribe directo en `INGRESOS` o `EGRESOS`. Los desplegables
+de Concepto, Categoría, Subcategoría y Cuenta salen del propio histórico ordenados por uso, para
+que nadie vuelva a teclear "Cuotas y suscripciones" con otra ortografía y rompa el agrupado.
+`Mes` y `Año` se llenan solos con la fecha.
+
+Al escribir el cliente o proveedor, si esa contraparte **siempre** se clasificó igual en el
+histórico, el formulario propone esa clasificación y lo avisa. Si tiene dos clasificaciones
+distintas no propone nada: sugerir la más frecuente escondería justo la decisión que hay que
+tomar. Este modo requiere permiso de **Editor** en el archivo, no solo de lector.
 
 ### Ojo con el vercel.json del módulo
 

@@ -196,6 +196,91 @@ async function movimientos(q) {
   return salida;
 }
 
+// ------------------------------------------------------------- catálogos ---
+// Los valores que ya se usan en la hoja, para que el formulario ofrezca listas
+// en vez de que alguien vuelva a teclear "Cuotas y suscripciones" con otra
+// ortografía y se rompa el agrupado.
+//
+// Además arma una memoria: contraparte -> cómo se clasificó la última vez.
+// No adivina: solo repite lo que ya se decidió antes, y solo cuando esa
+// contraparte siempre se clasificó igual.
+async function catalogos() {
+  const out = { lados: {} };
+  for (const clave of Object.keys(F.CFG.PESTANAS)) {
+    const pestana = F.CFG.PESTANAS[clave];
+    const info = { pestana, conceptos: [], categorias: [], subcategorias: [],
+                   cuentas: [], contrapartes: [], memoria: {}, columnas: [] };
+    try {
+      const hoja = await F.leer(pestana);
+      const { columnas: c } = F.mapaDeColumnas(hoja.encabezados);
+      info.columnas = hoja.encabezados;
+      const sets = { conceptos: {}, categorias: {}, subcategorias: {}, cuentas: {}, contrapartes: {} };
+      const vistas = {};   // contraparte -> { "concepto|cat|sub": veces }
+      hoja.renglones.forEach(r => {
+        const add = (bolsa, valor) => { const v = F.txt(valor); if (v) bolsa[v] = (bolsa[v] || 0) + 1; };
+        add(sets.conceptos, r[c.concepto]);
+        add(sets.categorias, r[c.categoria]);
+        add(sets.subcategorias, r[c.subcategoria]);
+        add(sets.cuentas, r[c.cuenta]);
+        add(sets.contrapartes, r[c.contraparte]);
+        const quien = F.norm(r[c.contraparte]);
+        if (!quien) return;
+        const combo = [F.txt(r[c.concepto]), F.txt(r[c.categoria]), F.txt(r[c.subcategoria])].join('|');
+        if (combo === '||') return;
+        vistas[quien] = vistas[quien] || {};
+        vistas[quien][combo] = (vistas[quien][combo] || 0) + 1;
+      });
+      // Ordenadas por uso: lo más frecuente primero
+      Object.keys(sets).forEach(k => {
+        info[k] = Object.keys(sets[k]).sort((a, b) => sets[k][b] - sets[k][a]);
+      });
+      // Solo se recuerda a quien SIEMPRE se clasificó igual. Si una contraparte
+      // tiene dos clasificaciones distintas en el histórico, no se sugiere nada:
+      // sugerir la más frecuente escondería la decisión que falta tomar.
+      Object.keys(vistas).forEach(quien => {
+        const combos = Object.keys(vistas[quien]);
+        if (combos.length !== 1) return;
+        const p = combos[0].split('|');
+        info.memoria[quien] = { concepto: p[0], categoria: p[1], subcategoria: p[2] };
+      });
+      info.recordadas = Object.keys(info.memoria).length;
+      info.contrapartesDistintas = info.contrapartes.length;
+    } catch (e) {
+      info.error = e.message; info.pista = e.pista || '';
+    }
+    out.lados[clave] = info;
+  }
+  return out;
+}
+
+// -------------------------------------------------------------- agregar ----
+// Escribe un movimiento en la pestaña que toque, respetando el orden de los
+// encabezados de la fila 1. Si mañana se mueve una columna, sigue funcionando.
+async function agregar(body) {
+  const clave = String(body.lado || '').toLowerCase() === 'egresos' ? 'egresos' : 'ingresos';
+  const pestana = F.CFG.PESTANAS[clave];
+  const hoja = await F.leer(pestana);
+  if (!hoja.encabezados.length) {
+    throw new Error('La pestaña "' + pestana + '" no tiene encabezados en la fila 1.');
+  }
+  const { columnas: c } = F.mapaDeColumnas(hoja.encabezados);
+  const campos = body.campos || {};
+  if (!F.txt(campos[c.fecha])) throw new Error('Falta la fecha.');
+  if (!F.num(campos[c.monto])) throw new Error('Falta el monto.');
+
+  const fila = hoja.encabezados.map(h => {
+    const k = Object.keys(campos).find(x => F.norm(x) === F.norm(h));
+    if (k) return campos[k];
+    // El Mes y el Año se rellenan solos a partir de la fecha
+    const d = F.fechaNum(campos[c.fecha]);
+    if (d && F.norm(h) === 'mes') return Math.floor(d / 100) % 100;
+    if (d && F.norm(h) === 'ano') return Math.floor(d / 10000);
+    return '';
+  });
+  await core.appendRow(F.CFG.ARCHIVO, pestana, fila);
+  return { ok: true, pestana, escrito: 1 };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
@@ -204,8 +289,15 @@ module.exports = async (req, res) => {
     const accion = String(body.accion || 'movimientos').toLowerCase();
     if (accion === 'diagnostico') return res.status(200).json(await diagnostico());
     if (accion === 'movimientos') return res.status(200).json(await movimientos(body));
+    if (accion === 'catalogos') return res.status(200).json(await catalogos());
+    if (accion === 'agregar') {
+      if (!core.verifyWriter(body.token)) {
+        return res.status(401).json({ error: 'Tu usuario es de solo lectura.' });
+      }
+      return res.status(200).json(await agregar(body));
+    }
     return res.status(404).json({ error: 'No existe la acción "' + accion + '".',
-                                  disponibles: ['diagnostico', 'movimientos'] });
+                                  disponibles: ['diagnostico', 'movimientos', 'catalogos', 'agregar'] });
   } catch (e) {
     return res.status(500).json({ error: (e && e.message) || String(e), pista: e && e.pista });
   }

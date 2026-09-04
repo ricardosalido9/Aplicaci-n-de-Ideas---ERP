@@ -1,6 +1,6 @@
 # Pendientes — Panel de Aplicación de Ideas
 
-Actualizado en la versión **2026.08.24-008**.
+Actualizado en la versión **2026.08.24-009**.
 
 ---
 
@@ -41,6 +41,7 @@ Actualizado en la versión **2026.08.24-008**.
 | 006 | Importador de estados de cuenta en PDF (Prestadero, Briq, Yo te Presto) con vista previa, cuadre automático y antiduplicados |
 | 006 | Ventas visual: tarjetas de dinero, pastillas de color fijo por línea, cliente con inicial, barra de avance de cobranza |
 | 007 | Análisis de inversiones: rendimiento anualizado, costos, morosidad y serie de 31 meses por plataforma |
+| 009 | Botón "+ Agregar movimiento" en Ingresos y Egresos: escribe en la hoja, con listas del propio histórico y clasificación recordada por contraparte |
 | 008 | Ingresos y Egresos conectado, con el módulo que mandaste integrado: traspasos fuera, signo deducido, separación entre flujo y operación, y el bloque "de dónde salió este número" |
 
 ---
@@ -49,7 +50,25 @@ Actualizado en la versión **2026.08.24-008**.
 
 | # | Qué | Nota |
 |---|---|---|
+| 10b | **Importar el estado de cuenta del banco** a INGRESOS/EGRESOS | Falta un archivo de muestra (BBVA y Konfio, de preferencia en CSV o Excel) para escribir el lector. La clasificación no se puede automatizar del todo: ver la nota de abajo |
 | 11 | Importar movimientos por **CSV** de las tres plataformas | Más estable que el PDF: si cambian el diseño del estado de cuenta, el lector de PDF se puede romper y un CSV no. El PDF queda para el cierre rápido; el CSV para el detalle movimiento a movimiento |
 | 12 | Conectar las áreas que siguen en gris | Prospectos, Cotizaciones, Clientes, Contratos, Proyectos, Compras, Activos, RRHH, Finanzas y Contabilidad ya están en el menú pero sin hoja |
 | 13 | Alerta de **capital ocioso** | El importador ya guarda el "Dinero disponible" de cada plataforma; falta el aviso en Inicio cuando pase de cierto monto |
 | 14 | Revisar la **cartera de Prestadero** | 81% de la cartera activa está vencida o en mora. Es dato, no bug: vale la pena verlo con calma |
+
+---
+
+## Nota: por qué el importador del banco lleva revisión
+
+Se midió contra el propio histórico, entrenando con 2025 y probando contra 2026:
+
+- Adivinando por el texto del estado de cuenta: acierta el concepto en **41-46%** de los casos.
+- Usando la contraparte como llave: el proveedor ya se conocía en **42%** de los movimientos de
+  2026, y de esos acertó en **62%**. Cobertura automática real: **26%**.
+
+Con esos números, un importador que clasifique solo metería más errores de los que ahorra.
+El diseño que sí funciona es el mismo del importador de PDF: **leer, proponer y que tú
+confirmes** antes de escribir. La parte que sí es confiable es la memoria por contraparte
+cuando siempre se ha clasificado igual: de 156 proveedores del histórico, **136 (87%)** tienen
+una sola clasificación en toda su vida. Esos se pueden proponer con confianza; el resto se
+marca para que alguien decida.

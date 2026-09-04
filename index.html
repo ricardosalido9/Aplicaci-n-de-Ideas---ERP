@@ -266,6 +266,18 @@
   #impView { display:none; }
   #invView { display:none; }
   #finView { display:none; }
+  .fin-add { margin-left:auto; }
+  .mov-form { display:grid; gap:13px; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+  .mov-form .full { grid-column:1/-1; }
+  .mov-form label { display:block; font-size:11.5px; letter-spacing:.5px; text-transform:uppercase;
+    color:var(--muted); font-weight:500; margin-bottom:5px; }
+  .mov-form input, .mov-form select { width:100%; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--line); background:var(--surface); font:inherit; font-size:14px; color:var(--ink); }
+  .mov-form input:focus, .mov-form select:focus { outline:none; border-color:var(--accent); }
+  .mov-lado { display:flex; gap:8px; }
+  .mov-lado button { flex:1; padding:11px; border-radius:10px; font-size:14px; }
+  .mov-lado button.on { background:var(--primary); border-color:var(--primary); color:#fff; font-weight:500; }
+  .mov-memo { font-size:12.5px; color:var(--success); margin-top:8px; }
   .fin-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
   .fin-bar select { padding:9px 12px; border-radius:10px; border:1px solid var(--line);
     background:var(--surface); font:inherit; font-size:13.5px; color:var(--ink); }
@@ -534,7 +546,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
-  <div class="login-ver">Versión 2026.08.24-008</div>
+  <div class="login-ver">Versión 2026.08.24-009</div>
 </div>
 
 <div id="appView">
@@ -553,7 +565,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
-      <span class="nav-ver" id="navVer">Versión 2026.08.24-008</span>
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-009</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -713,7 +725,7 @@
 
   // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
   // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
-  var VERSION = '2026.08.24-008';
+  var VERSION = '2026.08.24-009';
 
   function revisarVersion(delServidor) {
     var el = document.getElementById('navVer');
@@ -2221,7 +2233,10 @@
       '<label class="sw"><input type="checkbox" id="finOper"' + (finOpts.soloOperacion ? ' checked' : '') +
         '> Solo operación</label>' +
       '<label class="sw"><input type="checkbox" id="finTras"' + (finOpts.incluirTraspasos ? ' checked' : '') +
-        '> Incluir traspasos</label></div>';
+        '> Incluir traspasos</label>' +
+      (esSoloLectura(state.key) ? '' :
+        '<button type="button" class="primary fin-add" id="finAdd">+ Agregar movimiento</button>') +
+      '</div>';
 
     if (ing.error || egr.error) {
       [ing, egr].forEach(function (L) {
@@ -2297,6 +2312,119 @@
     if (o) o.addEventListener('change', function () { finOpts.soloOperacion = o.checked; loadFinanzas(); });
     var t = document.getElementById('finTras');
     if (t) t.addEventListener('change', function () { finOpts.incluirTraspasos = t.checked; loadFinanzas(); });
+    var b = document.getElementById('finAdd');
+    if (b) b.addEventListener('click', abrirMovimiento);
+  }
+
+  // ----- Alta de un movimiento de ingreso o egreso -----
+  var finCat = null;        // catálogos de la hoja
+  var movLado = 'ingresos';
+
+  function abrirMovimiento() {
+    if (finCat) { pintarMovimiento(); return; }
+    api('finanzas', { token: state.token, accion: 'catalogos' }).then(function (res) {
+      finCat = res; pintarMovimiento();
+    }).catch(fail);
+  }
+
+  function opciones(lista, valor) {
+    return '<option value=""></option>' + (lista || []).map(function (x) {
+      return '<option' + (x === valor ? ' selected' : '') + '>' + esc(x) + '</option>';
+    }).join('');
+  }
+
+  function pintarMovimiento() {
+    var c = (finCat && finCat.lados && finCat.lados[movLado]) || {};
+    if (c.error) { toast(c.error, true); return; }
+    var quienEs = movLado === 'egresos' ? 'Proveedor' : 'Cliente';
+    var hoy = new Date().toISOString().slice(0, 10);
+
+    var h = '<div class="mov-lado full" style="margin-bottom:4px">' +
+      '<button type="button" data-lado="ingresos"' + (movLado === 'ingresos' ? ' class="on"' : '') +
+        '>Entró dinero</button>' +
+      '<button type="button" data-lado="egresos"' + (movLado === 'egresos' ? ' class="on"' : '') +
+        '>Salió dinero</button></div>' +
+      '<div class="mov-form">' +
+      '<div><label>Fecha</label><input type="date" id="mvFecha" value="' + hoy + '"></div>' +
+      '<div><label>Monto</label><input id="mvMonto" inputmode="decimal" placeholder="0.00"></div>' +
+      '<div><label>' + quienEs + '</label><input id="mvQuien" list="mvQuienL" autocomplete="off">' +
+        '<datalist id="mvQuienL">' + (c.contrapartes || []).slice(0, 300).map(function (x) {
+          return '<option>' + esc(x) + '</option>'; }).join('') + '</datalist></div>' +
+      '<div><label>Cuenta</label><select id="mvCuenta">' + opciones(c.cuentas) + '</select></div>' +
+      '<div class="full"><label>Descripción</label><input id="mvDesc" placeholder="Qué fue"></div>' +
+      '<div><label>Concepto</label><select id="mvConcepto">' + opciones(c.conceptos) + '</select></div>' +
+      '<div><label>Categoría</label><select id="mvCat">' + opciones(c.categorias) + '</select></div>' +
+      '<div><label>Subcategoría</label><select id="mvSub">' + opciones(c.subcategorias) + '</select></div>' +
+      '<div class="full" id="mvMemo"></div>' +
+      '</div>';
+
+    abrirModal('Nuevo movimiento', h, function (cerrar) {
+      var campos = {};
+      campos['Fecha'] = document.getElementById('mvFecha').value;
+      campos['Total'] = document.getElementById('mvMonto').value;
+      campos[quienEs] = document.getElementById('mvQuien').value;
+      campos['Cuenta'] = document.getElementById('mvCuenta').value;
+      campos['Descripción'] = document.getElementById('mvDesc').value;
+      campos['Concepto'] = document.getElementById('mvConcepto').value;
+      campos['Categoría'] = document.getElementById('mvCat').value;
+      campos['Subcategoría'] = document.getElementById('mvSub').value;
+      if (!campos['Fecha']) { toast('Falta la fecha.', true); return; }
+      if (!campos['Total']) { toast('Falta el monto.', true); return; }
+      api('finanzas', { token: state.token, accion: 'agregar', lado: movLado, campos: campos })
+        .then(function () {
+          toast('Movimiento registrado en ' + (movLado === 'egresos' ? 'EGRESOS' : 'INGRESOS') + '.');
+          cerrar(); finCat = null; loadFinanzas();
+        }).catch(fail);
+    });
+
+    // Cambiar de lado vuelve a pintar con los catálogos del otro lado
+    Array.prototype.forEach.call(document.querySelectorAll('.mov-lado button'), function (b) {
+      b.addEventListener('click', function () {
+        movLado = b.getAttribute('data-lado'); cerrarModal(); pintarMovimiento();
+      });
+    });
+
+    // Al escribir la contraparte, si siempre se clasificó igual, se propone
+    var q = document.getElementById('mvQuien');
+    q.addEventListener('change', function () {
+      var k = norm(q.value);
+      var m = (c.memoria || {})[k];
+      var memo = document.getElementById('mvMemo');
+      if (!m) { memo.innerHTML = ''; return; }
+      document.getElementById('mvConcepto').value = m.concepto || '';
+      document.getElementById('mvCat').value = m.categoria || '';
+      document.getElementById('mvSub').value = m.subcategoria || '';
+      memo.innerHTML = '<div class="mov-memo">Se clasificó como la vez pasada. ' +
+        'Cámbialo si este movimiento va en otro lado.</div>';
+    });
+  }
+
+  // ----- Modal genérico (lo usa el alta de movimientos) -----
+  function cerrarModal() {
+    var m = document.getElementById('genModal');
+    if (m) { m.remove(); document.body.style.overflow = ''; }
+  }
+  function abrirModal(titulo, cuerpo, onGuardar) {
+    cerrarModal();
+    var d = document.createElement('div');
+    d.id = 'genModal'; d.className = 'modal-overlay on';
+    d.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' +
+      '<div class="modal-head"><h3>' + esc(titulo) + '</h3>' +
+      '<button type="button" class="modal-x" aria-label="Cerrar">' +
+      '<svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/>' +
+      '<line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
+      '<div class="modal-body">' + cuerpo + '</div>' +
+      '<div class="modal-foot"><button type="button" id="genCancel">Cancelar</button>' +
+      '<button type="button" class="primary" id="genOk">Guardar</button></div></div>';
+    document.body.appendChild(d);
+    document.body.style.overflow = 'hidden';
+    d.querySelector('.modal-x').addEventListener('click', cerrarModal);
+    d.querySelector('#genCancel').addEventListener('click', cerrarModal);
+    d.addEventListener('click', function (e) { if (e.target === d) cerrarModal(); });
+    document.addEventListener('keydown', function esc2(e) {
+      if (e.key === 'Escape') { cerrarModal(); document.removeEventListener('keydown', esc2); }
+    });
+    d.querySelector('#genOk').addEventListener('click', function () { onGuardar(cerrarModal); });
   }
 
   function loadDashboard() {
