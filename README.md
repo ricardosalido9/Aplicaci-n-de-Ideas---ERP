@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-011**
+**Versión 2026.08.24-013**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -331,7 +331,7 @@ del mismo importador.
 
 ## Análisis de inversiones
 
-Menú → **Inversiones → Rendimiento y cartera**. Lee la pestaña `Inversiones` (31 meses de
+Menú → **Inversiones → Análisis de inversiones**. Lee la pestaña `Inversiones` (31 meses de
 historia desde 2024) y calcula lo que el estado de cuenta no te dice de frente.
 
 **Rendimiento anualizado** — rendimiento neto del mes ÷ capital promedio del mes, llevado a
@@ -396,6 +396,13 @@ egresos no vienen de la operación.
 permite explicar una diferencia en vez de discutirla: cuántos renglones tiene la hoja, cuántos
 entraron, cuántos se quedaron fuera por fecha ilegible, por año, por traspaso. Cuando el total
 no coincide con el que se ve en la pestaña, la diferencia está casi siempre ahí.
+
+### Si algo no carga: "Revisar conexión"
+
+El botón está en la misma barra. Contesta la pregunta que si no se vuelve adivinanza: ¿faltan
+credenciales, el archivo no está compartido, o la pestaña se llama distinto? Las tres se ven
+igual desde afuera. Dice cuál de las tres es, cuántos renglones tiene cada pestaña y cuántos
+traen una fecha ilegible.
 
 ### Capturar un movimiento
 
