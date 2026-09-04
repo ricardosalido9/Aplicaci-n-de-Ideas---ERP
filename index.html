@@ -264,6 +264,10 @@
   #dashView { display:none; }
   /* Importador de estados de cuenta */
   #impView { display:none; }
+  #invView { display:none; }
+  .inv-note { font-size:12.5px; color:var(--slate); margin:-6px 0 16px; }
+  .inv-warn { background:var(--danger-bg); color:var(--danger); border-radius:10px;
+    padding:11px 14px; font-size:13px; margin-top:12px; }
   .drop { border:2px dashed var(--rail-line); border-radius:var(--radius); background:var(--surface);
     padding:38px 24px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
   .drop:hover, .drop.over { border-color:var(--accent); background:var(--accent-soft); }
@@ -509,7 +513,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
-  <div class="login-ver">Versión 2026.08.24-006</div>
+  <div class="login-ver">Versión 2026.08.24-007</div>
 </div>
 
 <div id="appView">
@@ -528,7 +532,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
-      <span class="nav-ver" id="navVer">Versión 2026.08.24-006</span>
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-007</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -552,6 +556,7 @@
       <div id="homeView"></div>
       <div id="dashView"></div>
       <div id="impView"></div>
+      <div id="invView"></div>
       <div id="tableView">
       <div class="page-head">
         <div class="ph-l">
@@ -686,7 +691,7 @@
 
   // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
   // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
-  var VERSION = '2026.08.24-006';
+  var VERSION = '2026.08.24-007';
 
   function revisarVersion(delServidor) {
     var el = document.getElementById('navVer');
@@ -755,6 +760,7 @@
     ventas_prestamos: 'Intereses de préstamos otorgados',
     ventas_puerto: 'Retorno de la inversión en Puerto Escondido',
     importar: 'Estados de cuenta de las plataformas',
+    inv_analisis: 'Rendimiento y salud de cada plataforma',
     cxc: 'Saldos pendientes de cobro',
     cli_directorio: 'Directorio de clientes',
     cli_contratos: 'Contratos vigentes',
@@ -811,10 +817,12 @@
     var esDash = (key === 'dashboard');
     var esHome = (key === 'inicio');
     var esImp  = (key === 'importar');
-    var esEspecial = esDash || esHome || esImp;
+    var esInv  = (key === 'inv_analisis');
+    var esEspecial = esDash || esHome || esImp || esInv;
     document.getElementById('homeView').style.display = esHome ? 'block' : 'none';
     document.getElementById('dashView').style.display = esDash ? 'block' : 'none';
     document.getElementById('impView').style.display = esImp ? 'block' : 'none';
+    document.getElementById('invView').style.display = esInv ? 'block' : 'none';
     document.getElementById('tableView').style.display = esEspecial ? 'none' : 'block';
     document.querySelector('.controls').style.display = esEspecial ? 'none' : 'flex';
     document.getElementById('filterBar').style.display = esEspecial ? 'none' : 'flex';
@@ -823,6 +831,7 @@
     if (esHome) { loadHome(); return; }
     if (esDash) { loadDashboard(); return; }
     if (esImp)  { renderImportador(); return; }
+    if (esInv)  { loadInversiones(); return; }
 
     loadArea();
   }
@@ -1497,7 +1506,9 @@
         '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%"></span></span>' +
         '<span class="val">' + esc(val) + '</span></div>';
     });
-    html += '</div><div class="bar-total"><span>Total</span><span class="tv">' +
+    if (opts.sinTotal) return html + '</div>';
+    html += '</div><div class="bar-total"><span>' + esc(opts.totalLabel || 'Total') +
+            '</span><span class="tv">' +
             esc(opts.money ? formatMoney(granTotal) : fmtNum(granTotal)) + '</span></div>';
     return html;
   }
@@ -1516,14 +1527,17 @@
       var ht = Math.max(2, Math.round((v / max) * 128));
       var p = k.split('-');
       var lbl = MESES_CORTO[parseInt(p[1], 10) - 1] + ' ' + String(p[0]).slice(2);
-      var tip = lbl + ': ' + (opts.money ? formatMoney(v) : fmtNum(v));
-      var vlbl = opts.money ? fmtMoneyShort(v) : fmtNum(v);
+      var suf = opts.suffix || '';
+      var tip = lbl + ': ' + (opts.money ? formatMoney(v) : fmtNum(v) + suf);
+      var vlbl = opts.money ? fmtMoneyShort(v) : (fmtNum(v) + suf);
       html += '<div class="cbar" title="' + esc(tip) + '">' +
               '<span class="cv">' + esc(vlbl) + '</span>' +
               '<span class="fill" style="height:' + ht + 'px"></span>' +
               '<span class="cl">' + esc(lbl) + '</span></div>';
     });
-    html += '</div><div class="bar-total"><span>Total</span><span class="tv">' +
+    if (opts.sinTotal) return html + '</div>';
+    html += '</div><div class="bar-total"><span>' + esc(opts.totalLabel || 'Total') +
+            '</span><span class="tv">' +
             esc(opts.money ? formatMoney(granTotal) : fmtNum(granTotal)) + '</span></div>';
     return html;
   }
@@ -1925,6 +1939,195 @@
       v.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }).catch(function (e) {
       renderImportador(); fail(e);
+    });
+  }
+
+  // ===== Análisis de inversiones: cómo se comportan las plataformas =====
+  var invData = null;
+  var invPlat = '';   // '' = comparativo entre las tres
+
+  function loadInversiones() {
+    var v = document.getElementById('invView');
+    if (!invData) v.innerHTML = '<div class="state">Cargando…</div>';
+    api('inversiones', { token: state.token }).then(function (res) {
+      invData = res; renderInversiones();
+    }).catch(function (e) { v.innerHTML = '<div class="state">' + esc(e.message || e) + '</div>'; });
+  }
+
+  function pct(n, dec) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return (n * 100).toFixed(dec === undefined ? 1 : dec) + '%';
+  }
+  function nombreMes(ym) {
+    var m = ym % 100, a = Math.floor(ym / 100);
+    return MESES_CORTO[m - 1] + ' ' + String(a).slice(2);
+  }
+  // Promedia solo los meses que sí tienen el dato
+  function prom(lista, campo) {
+    var v = lista.map(function (x) { return x[campo]; })
+                 .filter(function (x) { return x !== null && x !== undefined && !isNaN(x); });
+    if (!v.length) return null;
+    return v.reduce(function (a, b) { return a + b; }, 0) / v.length;
+  }
+  function suma(lista, campo) {
+    return lista.reduce(function (a, x) { return a + (x[campo] || 0); }, 0);
+  }
+
+  function renderInversiones() {
+    var v = document.getElementById('invView');
+    var d = invData || {};
+    if (!d.conectado) {
+      v.innerHTML = '<div class="hero"><h2>Análisis de inversiones</h2></div>' +
+        '<div class="state">Todavía no encuentro la pestaña de movimientos de inversiones.</div>';
+      return;
+    }
+    var todos = d.meses || [];
+    var plats = d.plataformas || [];
+    if (invPlat && plats.indexOf(invPlat) === -1) invPlat = '';
+
+    var h = '<div class="hero"><h2>Análisis de inversiones</h2>' +
+      '<p>Qué tan bien trabaja el dinero en cada plataforma</p></div>';
+
+    // Pestañas por plataforma
+    h += '<div class="line-tabs"><button type="button" data-plat=""' +
+         (invPlat ? '' : ' class="on"') + '>Comparativo</button>';
+    plats.forEach(function (p) {
+      h += '<button type="button" data-plat="' + esc(p) + '"' +
+           (invPlat === p ? ' class="on"' : '') + '>' + esc(p) + '</button>';
+    });
+    h += '</div>';
+
+    // ---------- Comparativo entre plataformas ----------
+    if (!invPlat) {
+      h += '<div class="inv-note">Rendimiento anualizado = ' +
+'lo que ganas neto en el mes, dividido entre tu capital promedio, llevado a 12 meses con interés compuesto. Es el número que sí permite compararlas entre sí, sin que gane la que tiene más dinero adentro.' + '</div>';
+      var cards = plats.map(function (p) {
+        var m = todos.filter(function (x) { return x.plataforma === p; });
+        var u = m.slice(-12);
+        var ra = prom(u, 'rendAnual'), base = prom(u, 'base'),
+            mor = prom(u, 'mordida'), neto = suma(u, 'neto');
+        var ult = m[m.length - 1] || {};
+        return '<div class="line-card">' +
+          '<div class="lname">' + esc(p) + '</div>' +
+          '<div class="lval">' + esc(pct(ra)) + '</div>' +
+          '<div class="lsub">anualizado · ' + u.length + ' meses</div>' +
+          '<div class="lshare"><span style="width:' +
+            Math.max(2, Math.min(100, Math.round((ra || 0) * 100 / 0.25 * 100) / 100)) + '%"></span></div>' +
+          '<div class="lsub" style="margin-top:10px">Capital: ' + esc(fmtMoneyShort(base || 0)) + '</div>' +
+          '<div class="lsub">Neto 12m: ' + esc(fmtMoneyShort(neto)) + '</div>' +
+          '<div class="lsub">Se queda la plataforma y el SAT: ' + esc(pct(mor, 0)) + '</div>' +
+          (ult.morosidad !== null && ult.morosidad !== undefined
+            ? '<div class="lpc">Morosidad ' + esc(pct(ult.morosidad, 0)) + ' de la cartera activa</div>' : '') +
+          '</div>';
+      }).join('');
+      h += '<div class="dash-section"><h3>Rendimiento por plataforma</h3>' +
+           '<div class="line-grid">' + cards + '</div></div>';
+
+      // Dónde está el dinero hoy
+      var capital = {}, netos = {};
+      plats.forEach(function (p) {
+        var m = todos.filter(function (x) { return x.plataforma === p; });
+        var ult = m[m.length - 1];
+        if (ult && ult.saldoFinal) capital[p] = ult.saldoFinal;
+        netos[p] = suma(m.slice(-12), 'neto');
+      });
+      h += '<div class="dash-section"><h3>Dónde está el dinero</h3><div class="dash-cols">' +
+        '<div class="panel"><h4>Capital al último corte</h4><div class="panel-body">' +
+          barsHTML(capital, { money: true }) + '</div></div>' +
+        '<div class="panel"><h4>Rendimiento neto · 12 meses</h4><div class="panel-body">' +
+          barsHTML(netos, { money: true }) + '</div></div>' +
+        '</div></div>';
+
+      v.innerHTML = h;
+      conectarInversiones();
+      return;
+    }
+
+    // ---------- Una plataforma a detalle ----------
+    var M = todos.filter(function (x) { return x.plataforma === invPlat; });
+    var U = M.slice(-12);
+    var ult = M[M.length - 1] || {};
+    var raProm = prom(U, 'rendAnual');
+
+    h += '<div class="dash-section"><h3>' + esc(invPlat) + '</h3><div class="kpi-grid">' +
+      '<div class="kpi dark"><div class="k">Rendimiento anualizado</div><div class="v">' +
+        esc(pct(raProm)) + '</div><div class="s">promedio de ' + U.length + ' meses</div></div>' +
+      '<div class="kpi"><div class="k">Capital al corte</div><div class="v">' +
+        esc(fmtMoneyShort(ult.saldoFinal || 0)) + '</div><div class="s">' +
+        (ult.ym ? nombreMes(ult.ym) : '') + '</div></div>' +
+      '<div class="kpi"><div class="k">Neto 12 meses</div><div class="v">' +
+        esc(fmtMoneyShort(suma(U, 'neto'))) + '</div></div>' +
+      '<div class="kpi"><div class="k">Se va en costos</div><div class="v">' +
+        esc(pct(prom(U, 'mordida'), 0)) + '</div><div class="s">comisiones + retenciones</div></div>' +
+      (ult.morosidad !== null && ult.morosidad !== undefined
+        ? '<div class="kpi"><div class="k">Morosidad</div><div class="v">' + esc(pct(ult.morosidad, 0)) +
+          '</div><div class="s">de la cartera activa</div></div>' : '') +
+      '</div></div>';
+
+    // Alerta cuando la cartera se ve mal
+    if (ult.morosidad !== null && ult.morosidad !== undefined && ult.morosidad > 0.25) {
+      h += '<div class="inv-warn">Ojo: ' + esc(pct(ult.morosidad, 0)) + ' de la cartera activa de ' +
+        esc(invPlat) + ' está vencida, en mora o atrasada. Ese dinero ya no está generando y ' +
+        'una parte puede no volver.</div>';
+    }
+
+    // Rendimiento mes a mes
+    var serieR = {}, serieN = {};
+    U.forEach(function (x) {
+      var clave = Math.floor(x.ym / 100) + '-' + (x.ym % 100 < 10 ? '0' : '') + (x.ym % 100);
+      if (x.rendAnual !== null && x.rendAnual !== undefined) {
+        serieR[clave] = +(x.rendAnual * 100).toFixed(1);
+      }
+      serieN[clave] = x.neto || 0;
+    });
+
+    // A dónde se va el interés bruto
+    var reparto = {
+      'Queda para ti': +(suma(U, 'neto') - suma(U, 'retencion')).toFixed(2),
+      'Retenciones (SAT)': +suma(U, 'retencion').toFixed(2),
+      'Comisión plataforma': +suma(U, 'costo').toFixed(2)
+    };
+
+    h += '<div class="dash-section"><h3>Comportamiento</h3><div class="dash-cols">' +
+      '<div class="panel"><h4>Rendimiento anualizado por mes (%)</h4><div class="panel-body">' +
+        chartHTML(serieR, { suffix: '%', sinTotal: true }) + '</div></div>' +
+      '<div class="panel"><h4>Rendimiento neto por mes</h4><div class="panel-body">' +
+        chartHTML(serieN, { money: true, totalLabel: 'Acumulado' }) + '</div></div>' +
+      '<div class="panel"><h4>A dónde se va el interés bruto</h4><div class="panel-body">' +
+        barsHTML(reparto, { money: true }) + '</div></div>' +
+      (ult.cartera && Object.keys(ult.cartera).length
+        ? '<div class="panel"><h4>Cartera al último corte</h4><div class="panel-body">' +
+          barsHTML(ult.cartera, { money: true }) + '</div></div>' : '') +
+      '</div></div>';
+
+    // Tabla mes a mes
+    var filas = U.slice().reverse().map(function (x) {
+      return '<tr><td>' + esc(nombreMes(x.ym)) + '</td>' +
+        '<td class="num">' + esc(formatMoney(x.saldoFinal || 0)) + '</td>' +
+        '<td class="num">' + esc(formatMoney(x.bruto || 0)) + '</td>' +
+        '<td class="num">' + esc(formatMoney((x.costo || 0) + (x.retencion || 0))) + '</td>' +
+        '<td class="num">' + esc(formatMoney(x.neto || 0)) + '</td>' +
+        '<td class="num">' + esc(pct(x.rendAnual)) + '</td></tr>';
+    }).join('');
+    h += '<div class="dash-section"><h3>Mes a mes</h3><div class="panel"><div class="panel-body">' +
+      '<table class="mini-table"><thead><tr><th>Mes</th>' +
+      '<th style="text-align:right">Capital</th><th style="text-align:right">Interés bruto</th>' +
+      '<th style="text-align:right">Costos</th><th style="text-align:right">Neto</th>' +
+      '<th style="text-align:right">Anualizado</th></tr></thead><tbody>' + filas +
+      '</tbody></table></div></div></div>';
+
+    v.innerHTML = h;
+    conectarInversiones();
+  }
+
+  function conectarInversiones() {
+    Array.prototype.forEach.call(document.querySelectorAll('#invView .line-tabs button'), function (b) {
+      b.addEventListener('click', function () {
+        invPlat = b.getAttribute('data-plat') || '';
+        renderInversiones();
+        var el = document.getElementById('invView');
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 

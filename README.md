@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-006**
+**Versión 2026.08.24-007**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -47,6 +47,7 @@ api/lookup.js         Autocompletado entre hojas
 api/inicio.js         Avisos y pendientes de la pantalla de Inicio
 api/dashboard.js      Agregados y gráficas del Dashboard
 api/importar.js       Lee los PDF de estados de cuenta y los manda a las hojas
+api/inversiones.js    Indicadores de rendimiento por plataforma de inversión
 
 lib/estados.js        Lector de estados de cuenta (Prestadero, Briq, Yo te Presto)
 ```
@@ -307,6 +308,31 @@ que leer un PDF (si mañana cambian el diseño del estado de cuenta, el lector s
 un CSV no). El lector de PDF está pensado para el cierre mensual rápido. Si quieres el detalle
 movimiento por movimiento, el CSV es el camino y se puede agregar como una segunda entrada
 del mismo importador.
+
+---
+
+## Análisis de inversiones
+
+Menú → **Ingresos → Análisis de inversiones**. Lee la pestaña `Inversiones` (31 meses de
+historia desde 2024) y calcula lo que el estado de cuenta no te dice de frente.
+
+**Rendimiento anualizado** — rendimiento neto del mes ÷ capital promedio del mes, llevado a
+12 meses con interés compuesto. Es el único número que permite comparar las plataformas entre
+sí: sin él gana siempre la que tiene más dinero adentro, no la que trabaja mejor.
+
+**Se va en costos** — qué porcentaje del interés bruto se quedan la plataforma y el SAT entre
+comisiones y retenciones. El panel lo desglosa en tres barras: lo que queda para ti, las
+retenciones y la comisión.
+
+**Morosidad** — cuánto de la cartera *activa* (sin contar lo ya pagado) está vencido, en mora
+o atrasado. Si pasa del 25% sale una alerta roja, porque ese dinero dejó de generar y una
+parte puede no volver.
+
+La tabla de abajo trae mes a mes el capital, el interés bruto, los costos, el neto y el
+anualizado, para ver si la cosa mejora o se deteriora.
+
+Todo sale de los mismos renglones que escribe el importador de PDF, así que cada mes que
+importes un estado de cuenta, esta pantalla se actualiza sola.
 
 ---
 
