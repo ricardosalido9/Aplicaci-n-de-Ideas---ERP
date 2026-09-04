@@ -583,7 +583,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
-  <div class="login-ver">Versión 2026.08.24-013</div>
+  <div class="login-ver">Versión 2026.08.24-014</div>
 </div>
 
 <div id="appView">
@@ -602,7 +602,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
-      <span class="nav-ver" id="navVer">Versión 2026.08.24-013</span>
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-014</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -715,6 +715,8 @@
 
   // Áreas de solo consulta: sin formulario "Agregar registro"
   var READ_ONLY_AREAS = ['ingresos', 'egresos', 'cxc'];
+  // Áreas cuya hoja es puro espejo de fórmulas: se consultan, nunca se escriben
+  var AREAS_FORMULA = ['ingresos', 'egresos'];
   function esLector() {
     return state.rol === 'lector' || state.rol === 'viewer' || state.rol === 'lectura';
   }
@@ -766,7 +768,7 @@
 
   // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
   // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
-  var VERSION = '2026.08.24-013';
+  var VERSION = '2026.08.24-014';
 
   function revisarVersion(delServidor) {
     var el = document.getElementById('navVer');
@@ -836,7 +838,9 @@
     ventas_puerto: 'Retorno de la inversión en Puerto Escondido',
     importar: 'Estados de cuenta mensuales de las plataformas',
     inv_analisis: 'Capital, rendimiento y salud de la cartera',
-    fin_flujo: 'Flujo de efectivo del negocio',
+    fin_flujo: 'Resumen de lo que entra y lo que sale',
+    ingresos: 'Todos los movimientos de entrada',
+    egresos: 'Todos los movimientos de salida',
     cxc: 'Saldos pendientes de cobro',
     cli_directorio: 'Directorio de clientes',
     cli_contratos: 'Contratos vigentes',
@@ -944,6 +948,13 @@
           '<div class="state">Esta área todavía no está conectada. Agregá su hoja en SHEETS (lib/core.js).</div>';
         showAddButton(false);
         document.getElementById('formFields').innerHTML = '';
+      } else if (AREAS_FORMULA.indexOf(state.key) !== -1 && state.rows.length) {
+        renderTable();
+        var w = document.getElementById('tableWrap');
+        w.insertAdjacentHTML('afterbegin',
+          '<div class="imp-aviso" style="margin:14px 14px 0">Esta hoja se llena sola con ' +
+          'fórmulas desde la pestaña del año, así que aquí solo se consulta. ' +
+          'Para capturar, usa "+ Agregar movimiento" en Resumen del flujo.</div>');
       } else if (!state.headers.length) {
         document.getElementById('tableWrap').innerHTML =
           '<div class="state">La hoja está vacía o no tiene encabezados en la fila 1.</div>';
@@ -2769,17 +2780,24 @@
     var html = '<div class="rcards">';
     rows.forEach(function (r) {
       var titulo = cTitulo ? String(r[cTitulo] == null ? '' : r[cTitulo]).trim() : '';
+      // Si el renglón no trae nombre (pasa en movimientos de banco), el
+      // concepto hace de título: mejor eso que una tarjeta que diga "Sin nombre".
+      var tituloEsSub = false;
+      if (!titulo && cSub) {
+        titulo = String(r[cSub] == null ? '' : r[cSub]).trim();
+        tituloEsSub = !!titulo;
+      }
       var monto = cMonto ? parseNumber(r[cMonto]) : null;
       var pc = cPC ? parseNumber(r[cPC]) : null;
 
       html += '<div class="rcard" data-row="' + r._row + '"><div class="rc-top">' +
-        '<div class="rc-main"><div class="rc-l1"><b>' + esc(titulo || 'Sin nombre') + '</b>' +
+        '<div class="rc-main"><div class="rc-l1"><b>' + esc(titulo || 'Sin título') + '</b>' +
           (cPast ? chipHtml(r[cPast]) : '') +
           (pc !== null && pc > 0
             ? '<span class="tag tag-warn">Debe ' + esc(fmtMoneyShort(pc)) + '</span>'
             : (pc !== null ? '<span class="tag tag-ok">Pagado</span>' : '')) +
         '</div>';
-      if (cSub) {
+      if (cSub && !tituloEsSub) {
         var sub = String(r[cSub] == null ? '' : r[cSub]).trim();
         if (sub) html += '<div class="rc-l2" title="' + esc(sub) + '">' + esc(sub) + '</div>';
       }

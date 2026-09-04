@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-013**
+**Versión 2026.08.24-014**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -396,6 +396,27 @@ egresos no vienen de la operación.
 permite explicar una diferencia en vez de discutirla: cuántos renglones tiene la hoja, cuántos
 entraron, cuántos se quedaron fuera por fecha ilegible, por año, por traspaso. Cuando el total
 no coincide con el que se ve en la pestaña, la diferencia está casi siempre ahí.
+
+### Tres áreas, no una
+
+- **Resumen del flujo** — los totales, las gráficas mes a mes y el desglose. Es la pantalla
+  de análisis.
+- **Ingresos** — el listado completo de entradas, con buscador, filtros y descarga a CSV o PDF.
+- **Egresos** — lo mismo del lado del gasto.
+
+### Ojo: INGRESOS y EGRESOS son hojas de fórmulas
+
+Las pestañas `INGRESOS` y `EGRESOS` no son hojas de captura: **cada celda es una fórmula** que
+apunta a `INGRESOS 2025` o `INGRESOS 2026`. El consolidado de INGRESOS trae 2025 en las filas
+2-79 y 2026 de la 80 en adelante; EGRESOS, 2025 en 2-410 y 2026 de la 411.
+
+Por eso esas dos áreas son de **solo consulta**, y el servidor rechaza cualquier alta o edición
+ahí, no solo la interfaz: un guardado borraría la fórmula y desligaría el renglón de la hoja
+de su año, y no se notaría hasta que alguien cuadrara el mes.
+
+**Las altas van a la hoja del año.** El botón "+ Agregar movimiento" toma el año de la fecha
+que capturaste y escribe en `INGRESOS 2026` o `EGRESOS 2026`. Si esa pestaña no existe, lo dice
+en vez de escribir en el consolidado.
 
 ### Si algo no carga: "Revisar conexión"
 

@@ -258,14 +258,28 @@ async function catalogos() {
 // encabezados de la fila 1. Si mañana se mueve una columna, sigue funcionando.
 async function agregar(body) {
   const clave = String(body.lado || '').toLowerCase() === 'egresos' ? 'egresos' : 'ingresos';
-  const pestana = F.CFG.PESTANAS[clave];
-  const hoja = await F.leer(pestana);
+
+  // El movimiento va a la hoja del AÑO de su fecha, no al consolidado.
+  // El consolidado (INGRESOS / EGRESOS) es puro espejo de fórmulas: escribir
+  // ahí borraría la fórmula y el renglón quedaría suelto, fuera de su año.
+  const d = F.fechaNum((body.campos || {})[Object.keys(body.campos || {})
+              .find(k => F.norm(k) === 'fecha')] || '');
+  if (!d) throw new Error('Falta la fecha, o no la pude leer.');
+  const anio = Math.floor(d / 10000);
+  const pestana = F.pestanaDeAlta(clave, anio);
+
+  let hoja;
+  try { hoja = await F.leer(pestana); }
+  catch (e) {
+    throw new Error('No existe la pestaña "' + pestana + '" en el archivo. ' +
+      'Créala (o cambia el año del movimiento) antes de guardar: el consolidado ' +
+      'no se puede escribir porque son fórmulas.');
+  }
   if (!hoja.encabezados.length) {
     throw new Error('La pestaña "' + pestana + '" no tiene encabezados en la fila 1.');
   }
   const { columnas: c } = F.mapaDeColumnas(hoja.encabezados);
   const campos = body.campos || {};
-  if (!F.txt(campos[c.fecha])) throw new Error('Falta la fecha.');
   if (!F.num(campos[c.monto])) throw new Error('Falta el monto.');
 
   const fila = hoja.encabezados.map(h => {
