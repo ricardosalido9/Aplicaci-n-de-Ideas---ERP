@@ -1,6 +1,6 @@
 # Pendientes — Panel de Aplicación de Ideas
 
-Actualizado en la versión **2026.08.24-009**.
+Actualizado en la versión **2026.08.24-011**.
 
 ---
 
@@ -41,6 +41,8 @@ Actualizado en la versión **2026.08.24-009**.
 | 006 | Importador de estados de cuenta en PDF (Prestadero, Briq, Yo te Presto) con vista previa, cuadre automático y antiduplicados |
 | 006 | Ventas visual: tarjetas de dinero, pastillas de color fijo por línea, cliente con inicial, barra de avance de cobranza |
 | 007 | Análisis de inversiones: rendimiento anualizado, costos, morosidad y serie de 31 meses por plataforma |
+| 011 | Inversiones se separó de Ingresos en el menú: el estado de cuenta es patrimonio, no una venta |
+| 010 | Registros en tarjetas con toggle Tarjetas/Tabla, y acceso directo al importador desde Análisis de inversiones |
 | 009 | Botón "+ Agregar movimiento" en Ingresos y Egresos: escribe en la hoja, con listas del propio histórico y clasificación recordada por contraparte |
 | 008 | Ingresos y Egresos conectado, con el módulo que mandaste integrado: traspasos fuera, signo deducido, separación entre flujo y operación, y el bloque "de dónde salió este número" |
 

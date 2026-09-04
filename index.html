@@ -452,6 +452,43 @@
   .ta-center input { text-align:center; }
   .ta-right { text-align:right; font-variant-numeric:tabular-nums; }
   /* Celdas de dinero: la cifra manda, el signo de pesos se hace a un lado */
+  /* Registros en tarjetas: una por movimiento, para leerlas de corrido */
+  .rcards { padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .rcard { border:1px solid var(--line); border-radius:14px; background:var(--surface);
+    transition:border-color .14s, box-shadow .14s; }
+  .rcard:hover { border-color:var(--rail-line); box-shadow:var(--shadow-sm); }
+  .rcard.open { border-color:var(--rail-line); box-shadow:var(--shadow-sm); }
+  .rcard .rc-top { display:flex; align-items:flex-start; gap:14px; padding:15px 17px; cursor:pointer; }
+  .rcard .rc-main { flex:1 1 auto; min-width:0; }
+  .rcard .rc-l1 { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .rcard .rc-l1 b { font-size:15.5px; font-weight:600; letter-spacing:-.2px; }
+  .rcard .rc-l2 { font-size:14px; color:var(--ink); margin-top:5px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rcard .rc-l3 { font-size:12.5px; color:var(--muted); margin-top:5px; }
+  .rcard .rc-amt { flex:0 0 auto; display:flex; align-items:center; gap:12px; }
+  .rcard .rc-amt .rc-n { font-size:19px; font-weight:600; letter-spacing:-.4px;
+    font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .rcard .rc-amt .rc-n .cur { color:var(--muted); font-weight:400; }
+  .rcard .rc-amt .rc-n.due { color:var(--danger); }
+  .rcard .rc-chev { color:var(--muted); font-size:11px; line-height:1; transition:transform .16s; }
+  .rcard.open .rc-chev { transform:rotate(180deg); }
+  .rcard .rc-det { display:none; border-top:1px solid var(--line); padding:14px 17px 16px; }
+  .rcard.open .rc-det { display:block; }
+  .rcard .rc-det .rc-dg { display:grid; gap:2px 22px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
+  .rcard .rc-det .rc-dg div { display:flex; justify-content:space-between; gap:12px; font-size:13px;
+    padding:7px 0; border-bottom:1px solid var(--line); }
+  .rcard .rc-det .rc-dg div span:first-child { color:var(--slate); flex:0 0 auto; }
+  .rcard .rc-det .rc-dg div span:last-child { text-align:right; overflow:hidden; text-overflow:ellipsis; }
+  .rcard .rc-det .rc-acts { margin-top:13px; }
+  .vista-toggle { display:inline-flex; border:1px solid var(--line); border-radius:999px;
+    overflow:hidden; background:var(--surface); }
+  .vista-toggle button { border:0; border-radius:0; padding:9px 15px; font-size:13px; }
+  .vista-toggle button.on { background:var(--primary); color:#fff; font-weight:500; }
+  .vista-toggle button.on:hover { background:var(--primary-600); color:#fff; }
+  @media (max-width:640px) {
+    .rcard .rc-top { flex-direction:column; gap:9px; }
+    .rcard .rc-amt { width:100%; justify-content:space-between; }
+  }
   .money { font-variant-numeric:tabular-nums; font-weight:500; letter-spacing:-.1px; }
   .money .cur { color:var(--muted); font-weight:400; margin-right:1px; }
   .money.big { font-weight:600; }
@@ -546,7 +583,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
-  <div class="login-ver">Versión 2026.08.24-009</div>
+  <div class="login-ver">Versión 2026.08.24-011</div>
 </div>
 
 <div id="appView">
@@ -565,7 +602,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
-      <span class="nav-ver" id="navVer">Versión 2026.08.24-009</span>
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-011</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -609,6 +646,10 @@
         <button id="filterBtn" type="button">Añadir filtro</button>
         <button id="refreshBtn" type="button">Actualizar</button>
         <button id="downloadBtn" type="button">Descargar</button>
+        <span class="vista-toggle" id="vistaToggle">
+          <button type="button" data-vista="tarjetas">Tarjetas</button>
+          <button type="button" data-vista="tabla">Tabla</button>
+        </span>
         <span class="count" id="count"></span>
       </div>
       <div class="filterbar" id="filterBar"></div>
@@ -725,7 +766,7 @@
 
   // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
   // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
-  var VERSION = '2026.08.24-009';
+  var VERSION = '2026.08.24-011';
 
   function revisarVersion(delServidor) {
     var el = document.getElementById('navVer');
@@ -790,11 +831,11 @@
   var PAGE_SUBS = {
     ventas_registro: 'Todas las fuentes de ingreso',
     ventas_consultoria: 'Servicios de consultoría facturados',
-    ventas_inversiones: 'Rendimientos de las plataformas',
+    ventas_inversiones: 'Intereses cobrados de las plataformas',
     ventas_prestamos: 'Intereses de préstamos otorgados',
     ventas_puerto: 'Retorno de la inversión en Puerto Escondido',
-    importar: 'Estados de cuenta de las plataformas',
-    inv_analisis: 'Rendimiento y salud de cada plataforma',
+    importar: 'Estados de cuenta mensuales de las plataformas',
+    inv_analisis: 'Capital, rendimiento y salud de la cartera',
     fin_flujo: 'Flujo de efectivo del negocio',
     cxc: 'Saldos pendientes de cobro',
     cli_directorio: 'Directorio de clientes',
@@ -873,6 +914,18 @@
 
     loadArea();
   }
+
+  (function () {
+    var t = document.getElementById('vistaToggle');
+    if (!t) return;
+    t.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      vistaModo = b.getAttribute('data-vista');
+      editingRow = -1;
+      renderTable();
+    });
+  })();
 
   function loadArea() {
     document.getElementById('tableWrap').innerHTML = '<div class="state">Cargando...</div>';
@@ -2025,6 +2078,12 @@
 
     var h = '<div class="hero"><h2>Análisis de inversiones</h2>' +
       '<p>Qué tan bien trabaja el dinero en cada plataforma</p></div>';
+    // Acceso directo al importador: es donde se suben los PDF que alimentan esto
+    if (!esLector()) {
+      h += '<div class="fin-bar"><button type="button" class="primary" id="invImp">' +
+'+ Subir estados de cuenta' + '</button>' +
+        '<span class="dash-hint">Prestadero, Briq y Yo te Presto</span></div>';
+    }
 
     // Pestañas por plataforma
     h += '<div class="line-tabs"><button type="button" data-plat=""' +
@@ -2159,6 +2218,10 @@
   }
 
   function conectarInversiones() {
+    var imp = document.getElementById('invImp');
+    if (imp) imp.addEventListener('click', function () {
+      selectArea('importar', 'Importar estados de cuenta');
+    });
     Array.prototype.forEach.call(document.querySelectorAll('#invView .line-tabs button'), function (b) {
       b.addEventListener('click', function () {
         invPlat = b.getAttribute('data-plat') || '';
@@ -2527,11 +2590,35 @@
            '</span>' + esc(resto) + '</span>';
   }
 
+  // 'tarjetas' o 'tabla'. Las tarjetas se leen mejor y funcionan en celular;
+  // la tabla sirve para comparar columnas y para editar en línea.
+  var vistaModo = 'tarjetas';
+
+  function pintarToggle() {
+    var t = document.getElementById('vistaToggle');
+    if (!t) return;
+    Array.prototype.forEach.call(t.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-vista') === vistaModo);
+    });
+  }
+
+  // La primera columna de la lista que exista en esta área
+  function campoDe() {
+    var nombres = Array.prototype.slice.call(arguments);
+    for (var i = 0; i < nombres.length; i++) {
+      var hit = state.headers.filter(function (x) { return norm(x) === norm(nombres[i]); })[0];
+      if (hit) return hit;
+    }
+    return null;
+  }
+
   function renderTable() {
     var rows = sortRows(filteredRows());
     renderSummary(rows);
+    pintarToggle();
     document.getElementById('count').textContent = rows.length + (rows.length === 1 ? ' registro' : ' registros');
     if (!rows.length) { document.getElementById('tableWrap').innerHTML = '<div class="state">Sin registros.</div>'; return; }
+    if (vistaModo === 'tarjetas' && editingRow === -1) { renderCards(rows); return; }
     var cols = visibleHeaders();
     var conAcciones = !esSoloLectura(state.key);
     var totalW = conAcciones ? 220 : 0; // columna de Acciones
@@ -2621,6 +2708,93 @@
     });
     html += '</tbody></table>';
     document.getElementById('tableWrap').innerHTML = html;
+  }
+
+  // ----- Registros en tarjetas -----
+  function renderCards(rows) {
+    // Qué columna hace de qué. Se resuelve por área, con nombres alternativos,
+    // para que sirva igual en Ventas, Clientes, Proveedores o Colaboradores.
+    var cTitulo = campoDe('Cliente', 'Proveedor', 'Colaborador', 'Nombre', 'Proyecto', 'Folio');
+    var cPast   = campoDe('Línea de Negocio', 'Status', 'Estatus', 'Etapa', 'Tipo');
+    var cSub    = campoDe('Descripción', 'Concepto', 'Puesto', 'Categoría', 'Tipo de Movimiento');
+    var cFecha  = state.headers.filter(function (x) { return isDateCol(x); })[0];
+    var cMonto  = campoDe('Total', 'Subtotal', 'Monto', 'Importe', 'Salario Bruto Mensual');
+    var cPC     = campoDe('Cuentas por Cobrar', 'Por Cobrar');
+    var conAcciones = !esSoloLectura(state.key);
+
+    // Lo que ya se ve arriba no se repite en el detalle
+    var arriba = [cTitulo, cPast, cSub, cFecha, cMonto].filter(Boolean).map(norm);
+
+    var html = '<div class="rcards">';
+    rows.forEach(function (r) {
+      var titulo = cTitulo ? String(r[cTitulo] == null ? '' : r[cTitulo]).trim() : '';
+      var monto = cMonto ? parseNumber(r[cMonto]) : null;
+      var pc = cPC ? parseNumber(r[cPC]) : null;
+
+      html += '<div class="rcard" data-row="' + r._row + '"><div class="rc-top">' +
+        '<div class="rc-main"><div class="rc-l1"><b>' + esc(titulo || 'Sin nombre') + '</b>' +
+          (cPast ? chipHtml(r[cPast]) : '') +
+          (pc !== null && pc > 0
+            ? '<span class="tag tag-warn">Debe ' + esc(fmtMoneyShort(pc)) + '</span>'
+            : (pc !== null ? '<span class="tag tag-ok">Pagado</span>' : '')) +
+        '</div>';
+      if (cSub) {
+        var sub = String(r[cSub] == null ? '' : r[cSub]).trim();
+        if (sub) html += '<div class="rc-l2" title="' + esc(sub) + '">' + esc(sub) + '</div>';
+      }
+      // Renglón de contexto: fecha y un par de datos cortos que sí existan
+      var meta = [];
+      if (cFecha && r[cFecha]) meta.push(formatDateCell(r[cFecha]));
+      ['Cuenta', 'Vendedor', 'Área', 'Método de cobro', 'Categoría'].forEach(function (n) {
+        if (meta.length >= 3) return;
+        var c = campoDe(n);
+        if (c && arriba.indexOf(norm(c)) === -1 && String(r[c] || '').trim()) {
+          meta.push(String(r[c]).trim());
+        }
+      });
+      if (meta.length) html += '<div class="rc-l3">' + esc(meta.join(' · ')) + '</div>';
+      html += '</div>';
+
+      html += '<div class="rc-amt">' +
+        (monto !== null
+          ? '<span class="rc-n' + (pc !== null && pc > 0 ? ' due' : '') + '">' +
+            dineroHtml(monto).replace(' class="money"', '') + '</span>'
+          : '') +
+        '<span class="rc-chev">▼</span></div></div>';
+
+      // Detalle: el resto de las columnas
+      html += '<div class="rc-det"><div class="rc-dg">';
+      visibleHeaders().forEach(function (hh) {
+        if (arriba.indexOf(norm(hh)) !== -1) return;
+        var raw = r[hh];
+        if (raw == null || String(raw).trim() === '') return;
+        var val = isMoneyCol(hh) ? formatMoney(raw) : (isDateCol(hh) ? formatDateCell(raw) : String(raw));
+        html += '<div><span>' + esc(String(hh).trim()) + '</span><span title="' + esc(val) + '">' +
+                esc(val) + '</span></div>';
+      });
+      html += '</div>' +
+        (conAcciones
+          ? '<div class="rc-acts"><button type="button" class="card-edit" data-row="' + r._row +
+            '">Editar este registro</button></div>'
+          : '') +
+        '</div></div>';
+    });
+    html += '</div>';
+    document.getElementById('tableWrap').innerHTML = html;
+
+    // Abrir y cerrar
+    Array.prototype.forEach.call(document.querySelectorAll('.rcard .rc-top'), function (t) {
+      t.addEventListener('click', function () { t.parentElement.classList.toggle('open'); });
+    });
+    // Editar manda a la tabla, que es donde se edita en línea
+    Array.prototype.forEach.call(document.querySelectorAll('.card-edit'), function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        editingRow = +b.getAttribute('data-row');
+        vistaModo = 'tabla';
+        renderTable();
+      });
+    });
   }
 
   function saveEdit(rowNum, btn) {

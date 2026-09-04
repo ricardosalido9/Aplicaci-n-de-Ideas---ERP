@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-009**
+**Versión 2026.08.24-011**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -218,6 +218,21 @@ configurada así: lee la hoja de Ventas y muestra únicamente las filas con sald
 
 ---
 
+## Dos secciones distintas: Ingresos e Inversiones
+
+Se separaron a propósito, porque son cosas distintas aunque se toquen:
+
+- **Ingresos** es lo que la empresa factura y cobra. Cada ítem es la hoja `Ventas 2026`
+  filtrada por su línea de negocio. Ahí, "Rendimientos" son los intereses que ya se cobraron
+  y entran como ingreso del mes.
+- **Inversiones** es el patrimonio que vive en las plataformas: el capital, la cartera, la
+  morosidad y los estados de cuenta que llegan cada mes. Ese PDF no registra una venta —
+  registra el estado de una inversión— así que vive aquí y no en Ingresos.
+
+El puente entre las dos es el importador: de cada estado de cuenta salen dos renglones a
+Ventas (los intereses cobrados, que sí son ingreso) y quince o veinte a Inversiones (saldos,
+retenciones, comisiones y estatus de la cartera, que no lo son).
+
 ## Ingresos: cuatro fuentes en una sola hoja
 
 Todo vive en `Ventas 2026` (archivo `181v9VGg...P3Zs`), una tabla plana con la columna
@@ -262,7 +277,7 @@ se aportó, cuánto se lleva recuperado y el porcentaje, sin que nadie actualice
 
 ## Importar estados de cuenta de las plataformas
 
-Menú → **Ingresos → Importar estados de cuenta**. Arrastras los PDF de Prestadero, Briq y
+Menú → **Inversiones → Importar estados de cuenta**. Arrastras los PDF de Prestadero, Briq y
 Yo te Presto (hasta 6 a la vez), el panel los lee y te enseña **qué va a escribir antes de
 escribirlo**. Nada toca la hoja hasta que aprietas "Guardar en la hoja".
 
@@ -316,7 +331,7 @@ del mismo importador.
 
 ## Análisis de inversiones
 
-Menú → **Ingresos → Análisis de inversiones**. Lee la pestaña `Inversiones` (31 meses de
+Menú → **Inversiones → Rendimiento y cartera**. Lee la pestaña `Inversiones` (31 meses de
 historia desde 2024) y calcula lo que el estado de cuenta no te dice de frente.
 
 **Rendimiento anualizado** — rendimiento neto del mes ÷ capital promedio del mes, llevado a
@@ -453,6 +468,13 @@ Sistema visual "lujo minimalista", ahora sobre la paleta del logotipo de IdeasyC
   ámbar), los montos van en cifras tabulares con el signo de pesos atenuado, y la columna de
   Cuentas por Cobrar muestra una barra de avance con el saldo en rojo — o una pastilla "Pagado"
   cuando ya no debe nada.
+- **Registros en tarjetas**: las áreas abren en tarjetas, una por movimiento, con el nombre y su
+  pastilla arriba, el concepto abajo, la fecha y un par de datos de contexto en gris, y el monto
+  grande a la derecha. Se tocan para abrirlas y ver el resto de las columnas. El botón
+  **Tarjetas / Tabla** en la barra cambia de vista: la tabla sigue ahí para comparar columnas y
+  para editar en línea, y "Editar este registro" desde una tarjeta lleva directo a ella.
+  Qué columna hace de título, de pastilla y de monto se resuelve por nombre, así que funciona
+  igual en Ventas, Clientes, Proveedores o Colaboradores sin configurar nada.
 - **Pastillas**: los valores de catálogo (Status, Tipo, Categoría…) salen como pastillas de color.
   Verde para activo/pagado/vigente, rojo para cancelado/baja/vencido, ámbar para pendiente/en proceso;
   el resto recibe un tono estable derivado del texto. Las descargas CSV y PDF exportan texto plano.
