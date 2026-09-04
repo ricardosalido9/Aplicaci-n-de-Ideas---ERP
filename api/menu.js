@@ -40,6 +40,6 @@ module.exports = async (req, res) => {
     }
     if (!def && items.length) { def = items[0].key; defLabel = items[0].label; }
 
-    return res.status(200).json({ items, defaultKey: def, defaultLabel: defLabel });
+    return res.status(200).json({ items, defaultKey: def, defaultLabel: defLabel, version: core.VERSION });
   } catch (e) { return res.status(500).json({ error: e.message }); }
 };

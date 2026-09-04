@@ -1,5 +1,19 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
+**Versión 2026.08.24-006**
+
+El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
+y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
+es el que crees.
+
+Vive en dos archivos y **los dos tienen que decir lo mismo**: la constante `VERSION` al inicio
+de `lib/core.js` (servidor) y la constante `VERSION` dentro del `<script>` de `index.html`
+(pantalla). Al entrar, el panel las compara: si no coinciden, el pie del menú se pone en rojo
+y avisa que el despliegue quedó a medias — que es justo lo que pasa cuando se sube el
+`index.html` nuevo pero Vercel se quedó con las funciones viejas, o al revés.
+
+Formato: `AAAA.MM.DD-NNN`, donde los tres dígitos finales son la entrega del día.
+
 Panel web conectado a tus Google Sheets. Frontend estático + funciones serverless en Vercel.
 Las hojas se leen y escriben con la **API de Google Sheets** usando una **cuenta de servicio**.
 
@@ -32,6 +46,9 @@ api/categories.js     Listas desplegables (pestaña CATEGORIAS de cada archivo)
 api/lookup.js         Autocompletado entre hojas
 api/inicio.js         Avisos y pendientes de la pantalla de Inicio
 api/dashboard.js      Agregados y gráficas del Dashboard
+api/importar.js       Lee los PDF de estados de cuenta y los manda a las hojas
+
+lib/estados.js        Lector de estados de cuenta (Prestadero, Briq, Yo te Presto)
 ```
 
 ---
@@ -239,6 +256,60 @@ se aportó, cuánto se lleva recuperado y el porcentaje, sin que nadie actualice
 
 ---
 
+## Importar estados de cuenta de las plataformas
+
+Menú → **Ingresos → Importar estados de cuenta**. Arrastras los PDF de Prestadero, Briq y
+Yo te Presto (hasta 6 a la vez), el panel los lee y te enseña **qué va a escribir antes de
+escribirlo**. Nada toca la hoja hasta que aprietas "Guardar en la hoja".
+
+De cada estado de cuenta salen:
+
+- **2 renglones a `Ventas 2026`** — Intereses e Intereses moratorios, con su subtotal e IVA,
+  ya clasificados como línea de negocio *Inversiones*.
+- **15 a 20 renglones a `Inversiones`** — saldos, principal, retenciones, comisiones, retiros,
+  ajustes y el estatus de la cartera al cierre.
+
+### Cómo lee cada plataforma
+
+| Dato | Prestadero | Briq | Yo te Presto |
+|---|---|---|---|
+| Saldo inicial | no lo trae · se hereda del cierre anterior | sí | sí |
+| Saldo final | Valor de la Cuenta | Valor de inversiones | sí |
+| Intereses | Interés Recibido | intereses | sí, desglosado |
+| IVA de intereses | no lo trae · se calcula al 16% | no lo trae · 16% | sí, desglosado |
+| Retenciones | no las desglosa | IVA e ISR retenido | IVA e ISR |
+| Estatus de cartera | Al corriente, En mora, Pagado, Vencido | — | + En tránsito, Atrasado |
+
+Los archivos se procesan en memoria durante la petición; el PDF no se guarda en ningún lado.
+
+### Los tres controles que trae
+
+1. **Cuadre automático.** Suma saldo inicial + entradas − salidas y lo compara contra el saldo
+   final del PDF. Si cuadra, lo dice en verde. Si no, la diferencia se registra como `Ajustes`,
+   igual que se venía haciendo a mano, y te avisa de cuánto fue.
+2. **Antiduplicados.** Si ese mes de esa plataforma ya está en la hoja, lo marca y lo omite.
+   Hay una casilla para forzarlo si de plano quieres reescribirlo.
+3. **Avisos honestos.** Cuando un dato se estimó en vez de leerse (el IVA de Prestadero, por
+   ejemplo), lo dice en pantalla. Nunca inventa un número en silencio.
+
+### Cuando el PDF no cuadra: el caso Prestadero
+
+Prestadero no desglosa IVA ni retenciones, y su "Valor de la Cuenta" se mueve también por
+préstamos nuevos y cartera castigada. Por eso su renglón de `Ajustes` casi nunca es cero —
+en marzo 2026 fue de $1,400.92. No es un error del lector: es la misma diferencia que ya
+absorbía la captura manual. Si algún mes ese ajuste se dispara, es señal de que hay que abrir
+el estado de cuenta a mano.
+
+### Si prefieres CSV
+
+Las tres plataformas dejan exportar movimientos en CSV o Excel, y eso siempre es más estable
+que leer un PDF (si mañana cambian el diseño del estado de cuenta, el lector se puede romper;
+un CSV no). El lector de PDF está pensado para el cierre mensual rápido. Si quieres el detalle
+movimiento por movimiento, el CSV es el camino y se puede agregar como una segunda entrada
+del mismo importador.
+
+---
+
 ## Agregar un área nueva
 
 1. En `lib/core.js` → `MENU`, agrega el ítem con su `key`, `label` e `icon`.
@@ -282,6 +353,13 @@ Sistema visual "lujo minimalista", ahora sobre la paleta del logotipo de IdeasyC
   va en texto, no en imagen. El área activa se marca con una pastilla en el color de acento.
 - **Alta de registros**: pop-up que se abre con "+ Agregar". Se cierra con la ×, con clic fuera,
   con Escape, y solo al guardar bien.
+- **Áreas de ingreso**: la tarjetería de arriba se arma con dinero, no con conteos —
+  ingresos sin IVA, con IVA, cobrado (con su % de avance), por cobrar, y una tarjeta por fuente
+  con su porcentaje del total. En la tabla, el cliente lleva su inicial en un círculo, la línea
+  de negocio tiene color fijo (Consultoría azul, Inversiones verde, Préstamos morado, Dividendos
+  ámbar), los montos van en cifras tabulares con el signo de pesos atenuado, y la columna de
+  Cuentas por Cobrar muestra una barra de avance con el saldo en rojo — o una pastilla "Pagado"
+  cuando ya no debe nada.
 - **Pastillas**: los valores de catálogo (Status, Tipo, Categoría…) salen como pastillas de color.
   Verde para activo/pagado/vigente, rojo para cancelado/baja/vencido, ámbar para pendiente/en proceso;
   el resto recibe un tono estable derivado del texto. Las descargas CSV y PDF exportan texto plano.

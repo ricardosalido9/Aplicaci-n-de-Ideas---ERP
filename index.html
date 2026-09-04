@@ -109,6 +109,11 @@
 
   /* Pie de la barra */
   .nav-foot { margin-top:auto; border-top:1px solid var(--line); padding:12px; }
+  .nav-ver { display:block; font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--muted); font-weight:500; padding:8px 12px 14px; }
+  .nav-ver.mismatch { color:var(--danger); letter-spacing:.6px; text-transform:none; line-height:1.35; }
+  .login-ver { margin-top:20px; font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--muted); font-weight:500; }
   .nav-logout { display:flex; align-items:center; gap:11px; width:100%; text-align:left;
     background:transparent; border:0; border-radius:10px; padding:10px 12px;
     font-size:14px; font-weight:500; color:var(--slate); cursor:pointer; transition:background .12s, color .12s; }
@@ -210,6 +215,13 @@
 
   /* ============ TARJETAS DE RESUMEN ============ */
   .summary { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+  .sum-card.accent { background:var(--primary); border-color:var(--primary); }
+  .sum-card.accent .k { color:rgba(255,255,255,.62); }
+  .sum-card.accent .v { color:#fff; }
+  .sum-card .sub { font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .sum-card.accent .sub { color:rgba(255,255,255,.62); }
+  .sum-card .dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px;
+    vertical-align:middle; }
   .sum-card { background:var(--surface); border:1px solid var(--line); border-radius:16px;
     box-shadow:var(--shadow-sm); padding:16px 20px; min-width:160px; text-align:center; }
   .sum-card .k { font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:500; }
@@ -250,6 +262,37 @@
 
   /* ============ DASHBOARD ============ */
   #dashView { display:none; }
+  /* Importador de estados de cuenta */
+  #impView { display:none; }
+  .drop { border:2px dashed var(--rail-line); border-radius:var(--radius); background:var(--surface);
+    padding:38px 24px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color:var(--accent); background:var(--accent-soft); }
+  .drop .dt { font-size:15px; font-weight:500; }
+  .drop .ds { font-size:13px; color:var(--slate); margin-top:6px; }
+  .drop svg { width:30px; height:30px; fill:none; stroke:var(--accent); stroke-width:1.6;
+    stroke-linecap:round; stroke-linejoin:round; margin-bottom:10px; }
+  .imp-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow-sm); margin-top:16px; overflow:hidden; }
+  .imp-card > h4 { margin:0; padding:14px 18px; border-bottom:1px solid var(--line);
+    font-size:14px; font-weight:600; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .imp-card > h4 .per { font-weight:400; color:var(--slate); }
+  .imp-body { padding:16px 18px; }
+  .imp-grid { display:grid; gap:10px 22px; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); }
+  .imp-grid div { display:flex; justify-content:space-between; gap:10px; font-size:13.5px;
+    padding:5px 0; border-bottom:1px solid var(--line); }
+  .imp-grid div span:first-child { color:var(--slate); }
+  .imp-grid div span:last-child { font-variant-numeric:tabular-nums; font-weight:500; }
+  .imp-aviso { background:var(--warn-bg); color:var(--warn); border-radius:9px;
+    padding:9px 12px; font-size:13px; margin-top:12px; }
+  .imp-err { background:var(--danger-bg); color:var(--danger); border-radius:9px;
+    padding:9px 12px; font-size:13px; }
+  .imp-ok { background:var(--success-bg); color:var(--success); border-radius:9px;
+    padding:9px 12px; font-size:13px; margin-top:12px; }
+  .imp-tag { font-size:11px; letter-spacing:.4px; text-transform:uppercase; border-radius:999px;
+    padding:3px 9px; font-weight:500; }
+  .imp-tag.ok { background:var(--success-bg); color:var(--success); }
+  .imp-tag.dup { background:var(--warn-bg); color:var(--warn); }
+  .imp-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:20px; }
   /* Pestañas por fuente de ingreso */
   .line-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 18px; }
   .line-tabs button { padding:9px 15px; font-size:13.5px; border-radius:999px; }
@@ -371,6 +414,22 @@
   .ta-center { text-align:center; }
   .ta-center input { text-align:center; }
   .ta-right { text-align:right; font-variant-numeric:tabular-nums; }
+  /* Celdas de dinero: la cifra manda, el signo de pesos se hace a un lado */
+  .money { font-variant-numeric:tabular-nums; font-weight:500; letter-spacing:-.1px; }
+  .money .cur { color:var(--muted); font-weight:400; margin-right:1px; }
+  .money.big { font-weight:600; }
+  .money.due { color:var(--danger); font-weight:600; }
+  .money.zero { color:var(--muted); font-weight:400; }
+  /* Cliente con su inicial, para reconocerlo de un vistazo */
+  .who { display:inline-flex; align-items:center; gap:9px; min-width:0; }
+  .who i { flex:0 0 24px; width:24px; height:24px; border-radius:50%; font-style:normal;
+    display:inline-flex; align-items:center; justify-content:center; font-size:11px;
+    font-weight:600; letter-spacing:.2px; }
+  .who span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Barra de cobranza dentro de la tabla */
+  .cobro { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+  .cobro .bar { flex:0 0 34px; height:5px; border-radius:999px; background:var(--accent-soft); overflow:hidden; }
+  .cobro .bar i { display:block; height:100%; background:var(--success); }
   .ta-right input { text-align:right; }
   tbody tr:hover { background:var(--paper); }
   td.actions { white-space:nowrap; }
@@ -450,6 +509,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
+  <div class="login-ver">Versión 2026.08.24-006</div>
 </div>
 
 <div id="appView">
@@ -468,6 +528,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-006</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -490,6 +551,7 @@
     <div class="content">
       <div id="homeView"></div>
       <div id="dashView"></div>
+      <div id="impView"></div>
       <div id="tableView">
       <div class="page-head">
         <div class="ph-l">
@@ -622,8 +684,27 @@
     document.getElementById('user').focus();
   }
 
+  // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
+  // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
+  var VERSION = '2026.08.24-006';
+
+  function revisarVersion(delServidor) {
+    var el = document.getElementById('navVer');
+    if (!el) return;
+    if (!delServidor) { el.textContent = 'Versión ' + VERSION; return; }
+    if (delServidor === VERSION) {
+      el.className = 'nav-ver';
+      el.textContent = 'Versión ' + VERSION;
+    } else {
+      el.className = 'nav-ver mismatch';
+      el.textContent = 'Despliegue mezclado: pantalla ' + VERSION + ', servidor ' + delServidor +
+                       '. Vuelve a subir el proyecto completo.';
+    }
+  }
+
   function buildMenu() {
     api('menu', { token: state.token }).then(function (res) {
+      revisarVersion(res.version);
       var nav = document.getElementById('navMenu'); nav.innerHTML = '';
 
       // Construye el menú a cualquier profundidad.
@@ -668,7 +749,13 @@
 
   // ----- Encabezado de página, botón Agregar y modal de alta -----
   var PAGE_SUBS = {
-    ventas_registro: 'Registro de ventas y cobranza',
+    ventas_registro: 'Todas las fuentes de ingreso',
+    ventas_consultoria: 'Servicios de consultoría facturados',
+    ventas_inversiones: 'Rendimientos de las plataformas',
+    ventas_prestamos: 'Intereses de préstamos otorgados',
+    ventas_puerto: 'Retorno de la inversión en Puerto Escondido',
+    importar: 'Estados de cuenta de las plataformas',
+    cxc: 'Saldos pendientes de cobro',
     cli_directorio: 'Directorio de clientes',
     cli_contratos: 'Contratos vigentes',
     compras_proveedores: 'Directorio de proveedores',
@@ -720,12 +807,14 @@
     }
     if (!keepClosed) closeNav();
 
-    // Vistas especiales: Inicio y Dashboard tienen su propia pantalla
+    // Vistas especiales: Inicio, Dashboard e Importar tienen su propia pantalla
     var esDash = (key === 'dashboard');
     var esHome = (key === 'inicio');
-    var esEspecial = esDash || esHome;
+    var esImp  = (key === 'importar');
+    var esEspecial = esDash || esHome || esImp;
     document.getElementById('homeView').style.display = esHome ? 'block' : 'none';
     document.getElementById('dashView').style.display = esDash ? 'block' : 'none';
+    document.getElementById('impView').style.display = esImp ? 'block' : 'none';
     document.getElementById('tableView').style.display = esEspecial ? 'none' : 'block';
     document.querySelector('.controls').style.display = esEspecial ? 'none' : 'flex';
     document.getElementById('filterBar').style.display = esEspecial ? 'none' : 'flex';
@@ -733,6 +822,7 @@
     if (esEspecial) showAddButton(false);
     if (esHome) { loadHome(); return; }
     if (esDash) { loadDashboard(); return; }
+    if (esImp)  { renderImportador(); return; }
 
     loadArea();
   }
@@ -780,7 +870,8 @@
   }
 
   // Columnas que se muestran como dinero ($ y separador de miles). Se comparan sin distinguir espacios/mayúsculas.
-  var MONEY_FIELDS = ['Descuento','Subtotal','IVA','Total','Total Cobrado','Por Cobrar','Saldo','Monto','Importe','Precio',
+  var MONEY_FIELDS = ['Descuento','Subtotal','IVA','Total','Cobrado','Total Cobrado','Por Cobrar','Saldo','Monto','Importe','Precio',
+                      'Rendimiento','Comisión','Retención','Capital','Interés','Intereses',
                       'Salario Bruto Mensual','Salario Neto Mensual','SD','SDI','SBC',
                       'Cuentas por Cobrar','Cuentas por Pagar','Ingreso','Egreso','Cargo','Abono','Depósito','Retiro',
                       'Valor est.','Valor est','Valor estimado'];
@@ -1054,6 +1145,10 @@
   var BREAKDOWN_MONEY = {
     ventas_leads: { by: 'Etapa', sum: 'Valor est.' }
   };
+  // Áreas de ingreso: la tarjetería se arma con el dinero, no con el conteo.
+  var AREAS_INGRESO = ['ventas_registro','ventas_consultoria','ventas_inversiones',
+                       'ventas_prestamos','ventas_puerto','cxc'];
+  function esAreaIngreso(k) { return AREAS_INGRESO.indexOf(k) !== -1; }
   function breakdownCol() {
     var name = BREAKDOWN_FIELDS[state.key] || 'Status';   // por defecto, Status
     return state.headers.filter(function (h) { return norm(h) === norm(name); })[0];
@@ -1065,6 +1160,58 @@
   function renderSummary(rows) {
     var box = document.getElementById('summary');
     if (!state.headers.length) { box.innerHTML = ''; return; }
+
+    // --- Áreas de ingreso: subtotal, cobrado, por cobrar y desglose por fuente ---
+    if (esAreaIngreso(state.key)) {
+      var cSub = colBy('Subtotal') || colBy('Total');
+      var cTot = colBy('Total'), cCob = colBy('Cobrado'), cPC = colBy('Cuentas por Cobrar');
+      var cLin = colBy('Línea de Negocio');
+      var sub = 0, cob = 0, pc = 0;
+      rows.forEach(function (r) {
+        sub += parseNumber(r[cSub]) || 0;
+        cob += parseNumber(r[cCob]) || 0;
+        pc  += parseNumber(r[cPC]) || 0;
+      });
+      var conIva = 0;
+      rows.forEach(function (r) { conIva += parseNumber(r[cTot]) || 0; });
+      var avance = conIva > 0 ? (cob / conIva * 100) : 0;
+
+      var hh = '<div class="sum-card accent"><div class="k">Ingresos sin IVA</div><div class="v">' +
+        esc(formatMoney(sub)) + '</div><div class="sub">' +
+        rows.length.toLocaleString('es-MX') + (rows.length === 1 ? ' registro' : ' registros') +
+        '</div></div>';
+      hh += '<div class="sum-card"><div class="k">Con IVA</div><div class="v">' +
+        esc(formatMoney(conIva)) + '</div></div>';
+      hh += '<div class="sum-card"><div class="k">Cobrado</div><div class="v">' +
+        esc(formatMoney(cob)) + '</div><div class="sub">' + avance.toFixed(0) +
+        '% de lo facturado</div></div>';
+      if (pc > 0) {
+        hh += '<div class="sum-card"><div class="k">Por cobrar</div><div class="v" style="color:var(--danger)">' +
+          esc(formatMoney(pc)) + '</div></div>';
+      }
+      // Una tarjeta por fuente, solo cuando hay más de una a la vista
+      if (cLin) {
+        var porL = {}, ordenL = [];
+        rows.forEach(function (r) {
+          var k = String(r[cLin] == null ? '' : r[cLin]).trim();
+          if (!k) return;
+          if (porL[k] === undefined) { porL[k] = 0; ordenL.push(k); }
+          porL[k] += parseNumber(r[cSub]) || 0;
+        });
+        if (ordenL.length > 1) {
+          ordenL.sort(function (a, b) { return porL[b] - porL[a]; });
+          ordenL.forEach(function (k) {
+            var t = TONO_LINEA[norm(k)] || CHIP_TONES[chipHash(norm(k))];
+            hh += '<div class="sum-card"><div class="k"><span class="dot" style="background:' +
+              t.fg + '"></span>' + esc(k) + '</div><div class="v">' + esc(formatMoney(porL[k])) +
+              '</div><div class="sub">' + (sub > 0 ? Math.round(porL[k] / sub * 100) : 0) +
+              '% del total</div></div>';
+          });
+        }
+      }
+      box.innerHTML = hh;
+      return;
+    }
 
     var html = '<div class="sum-card"><div class="k">Registros</div><div class="v">' +
                rows.length.toLocaleString('es-MX') + '</div></div>';
@@ -1606,6 +1753,181 @@
     });
   }
 
+  // ===== Importador de estados de cuenta de las plataformas de inversión =====
+  var impArchivos = [];    // [{nombre, base64}]
+  var impResultado = null; // respuesta de la vista previa
+
+  function renderImportador() {
+    var v = document.getElementById('impView');
+    var h = '<div class="hero"><h2>Importar estados de cuenta</h2>' +
+      '<p>Sube los PDF de Prestadero, Briq y Yo te Presto. El panel los lee, ' +
+      'te muestra qué va a escribir y hasta que lo apruebes lo manda a la hoja.</p></div>';
+
+    h += '<div class="drop" id="impDrop">' +
+      '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>' +
+      '<polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/></svg>' +
+      '<div class="dt">Arrastra los PDF aquí o toca para elegirlos</div>' +
+      '<div class="ds">Hasta 6 archivos. Se leen en tu sesión; nada se guarda sin tu visto bueno.</div>' +
+      '</div><input type="file" id="impFile" accept="application/pdf" multiple style="display:none">';
+
+    if (impArchivos.length) {
+      h += '<div class="imp-actions"><span style="font-size:13.5px;color:var(--slate)">' +
+        esc(impArchivos.map(function (a) { return a.nombre; }).join(' · ')) + '</span>' +
+        '<button type="button" class="primary" id="impLeer">Leer ' + impArchivos.length +
+        (impArchivos.length === 1 ? ' archivo' : ' archivos') + '</button>' +
+        '<button type="button" id="impLimpiar">Quitar</button></div>';
+    }
+
+    if (impResultado) h += renderImpResultado(impResultado);
+
+    v.innerHTML = h;
+    conectarImportador();
+  }
+
+  function fMoney(n) {
+    return (n === null || n === undefined || n === '') ? '—' : formatMoney(n);
+  }
+
+  function renderImpResultado(res) {
+    var h = '';
+    var hayAlgo = false;
+    (res.resultados || []).forEach(function (r) {
+      if (!r.ok) {
+        h += '<div class="imp-card"><div class="imp-body"><div class="imp-err">' +
+             esc(r.nombre) + ': ' + esc(r.error) + '</div></div></div>';
+        return;
+      }
+      hayAlgo = true;
+      var s = r.resumen || {};
+      h += '<div class="imp-card"><h4>' + esc(r.plataforma) +
+        '<span class="per">' + esc(r.mesTexto) + '</span>' +
+        (r.escrito ? '<span class="imp-tag ok">Guardado</span>' : '') +
+        (r.omitido ? '<span class="imp-tag dup">Omitido</span>' : '') +
+        (!r.escrito && !r.omitido && r.yaImportado ? '<span class="imp-tag dup">Ya estaba importado</span>' : '') +
+        '</h4><div class="imp-body">';
+
+      h += '<div class="imp-grid">' +
+        '<div><span>Saldo inicial</span><span>' + esc(fMoney(s.saldoInicial)) + '</span></div>' +
+        '<div><span>Saldo final</span><span>' + esc(fMoney(s.saldoFinal)) + '</span></div>' +
+        '<div><span>Intereses</span><span>' + esc(fMoney(s.intereses)) + '</span></div>' +
+        '<div><span>IVA de intereses</span><span>' + esc(fMoney(s.ivaIntereses)) + '</span></div>' +
+        '<div><span>Moratorios</span><span>' + esc(fMoney(s.moratorios)) + '</span></div>' +
+        '<div><span>Retenciones IVA/ISR</span><span>' + esc(fMoney((s.retencionIVA || 0) + (s.retencionISR || 0))) + '</span></div>' +
+        '<div><span>Comisiones</span><span>' + esc(fMoney((s.comision || 0) + (s.ivaComision || 0))) + '</span></div>' +
+        '<div><span>Retiros</span><span>' + esc(fMoney(s.retiros)) + '</span></div>' +
+        '<div><span>Rendimiento neto</span><span>' + esc(fMoney(s.rendimientoNeto)) + '</span></div>' +
+        '</div>';
+
+      if (s.cuadra === true) {
+        h += '<div class="imp-ok">La cuenta cuadra: saldo inicial + movimientos = saldo final.</div>';
+      }
+      (r.avisos || []).forEach(function (a) {
+        h += '<div class="imp-aviso">' + esc(a) + '</div>';
+      });
+
+      var vRows = (r.ventas || []).map(function (f) {
+        return '<tr><td>' + esc(f['Fecha']) + '</td><td>' + esc(f['Descripción']) +
+               '</td><td class="num">' + esc(formatMoney(f['Subtotal'])) +
+               '</td><td class="num">' + esc(formatMoney(f['IVA'])) + '</td></tr>';
+      }).join('');
+      h += '<h4 style="margin:18px 0 8px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)">' +
+'Se agregarán a Ventas 2026' +
+        '</h4><table class="mini-table"><thead><tr><th>Fecha</th><th>Concepto</th>' +
+        '<th style="text-align:right">Subtotal</th><th style="text-align:right">IVA</th></tr></thead><tbody>' +
+        vRows + '</tbody></table>';
+
+      h += '<div style="margin-top:12px;font-size:13px;color:var(--slate)">Y ' +
+        fmtNum((r.movimientos || []).length) +
+        ' movimientos al detalle de Inversiones (saldos, retenciones, comisiones y estatus de la cartera).</div>';
+
+      h += '</div></div>';
+    });
+
+    if (hayAlgo && res.preview) {
+      var dups = (res.resultados || []).filter(function (r) { return r.ok && r.yaImportado; }).length;
+      h += '<div class="imp-actions">' +
+        '<button type="button" class="primary" id="impGuardar">Guardar en la hoja</button>' +
+        (dups ? '<label style="font-size:13px;display:flex;align-items:center;gap:7px">' +
+                '<input type="checkbox" id="impForzar"> Escribir aunque ya estén importados</label>' : '') +
+        '<button type="button" id="impCancelar">Cancelar</button></div>';
+    }
+    if (res.ok) {
+      h += '<div class="imp-actions"><span class="imp-ok">Listo: ' + fmtNum(res.ventasEscritas) +
+        ' renglones en Ventas y ' + fmtNum(res.movsEscritos) + ' en Inversiones.</span></div>';
+    }
+    return h;
+  }
+
+  function conectarImportador() {
+    var drop = document.getElementById('impDrop');
+    var file = document.getElementById('impFile');
+    if (!drop) return;
+    drop.addEventListener('click', function () { file.click(); });
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+    });
+    drop.addEventListener('drop', function (e) { tomarArchivos(e.dataTransfer.files); });
+    file.addEventListener('change', function () { tomarArchivos(file.files); });
+
+    var leer = document.getElementById('impLeer');
+    if (leer) leer.addEventListener('click', function () { enviarImportacion(false); });
+    var limpiar = document.getElementById('impLimpiar');
+    if (limpiar) limpiar.addEventListener('click', function () {
+      impArchivos = []; impResultado = null; renderImportador();
+    });
+    var guardar = document.getElementById('impGuardar');
+    if (guardar) guardar.addEventListener('click', function () {
+      var fz = document.getElementById('impForzar');
+      enviarImportacion(true, fz && fz.checked);
+    });
+    var cancelar = document.getElementById('impCancelar');
+    if (cancelar) cancelar.addEventListener('click', function () {
+      impResultado = null; renderImportador();
+    });
+  }
+
+  function tomarArchivos(lista) {
+    var arr = Array.prototype.slice.call(lista || []).filter(function (f) {
+      return /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+    });
+    if (!arr.length) { toast('Solo se aceptan archivos PDF.', true); return; }
+    if (arr.length > 6) { toast('Máximo 6 archivos a la vez.', true); arr = arr.slice(0, 6); }
+    var pendientes = arr.length;
+    impArchivos = [];
+    arr.forEach(function (f) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        impArchivos.push({ nombre: f.name, base64: String(fr.result).split(',')[1] });
+        if (--pendientes === 0) { impResultado = null; renderImportador(); }
+      };
+      fr.onerror = function () {
+        if (--pendientes === 0) renderImportador();
+        toast('No pude leer ' + f.name, true);
+      };
+      fr.readAsDataURL(f);
+    });
+  }
+
+  function enviarImportacion(confirmar, forzar) {
+    var v = document.getElementById('impView');
+    var btn = document.getElementById(confirmar ? 'impGuardar' : 'impLeer');
+    if (btn) { btn.disabled = true; btn.textContent = confirmar ? 'Guardando…' : 'Leyendo…'; }
+    api('importar', {
+      token: state.token, archivos: impArchivos,
+      confirmar: !!confirmar, forzar: !!forzar
+    }).then(function (res) {
+      impResultado = res;
+      if (res.ok) { impArchivos = []; toast('Estados de cuenta guardados.'); }
+      renderImportador();
+      v.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (e) {
+      renderImportador(); fail(e);
+    });
+  }
+
   function loadDashboard() {
     document.getElementById('dashView').innerHTML =
       '<div class="state" style="padding:60px 0">Cargando indicadores…</div>';
@@ -1621,7 +1943,16 @@
   var editingRow = -1; // _row en edición (-1 = ninguna)
 
   // ----- Pastillas de color para valores de catálogo -----
-  var CHIP_COLS = ['status','estatus','estado','etapa','tipo','categoria','clasificacion',
+  // Colores fijos para las fuentes de ingreso: siempre el mismo, en tabla y en tarjetas.
+  var TONO_LINEA = {
+    'consultoria': { bg:'#e8f0f9', fg:'#26598f' },
+    'inversiones': { bg:'#eaf1ec', fg:'#2f6a4f' },
+    'prestamos':   { bg:'#f1eef7', fg:'#5b4a86' },
+    'dividendos':  { bg:'#fdf1e7', fg:'#8a5a24' }
+  };
+  var CHIP_COLS = ['linea de negocio','descripcion','concepto','tipo de movimiento',
+                   'ingreso / egreso','plataforma',
+                   'status','estatus','estado','etapa','tipo','categoria','clasificacion',
                    'prioridad','condicion','situacion','modalidad','puesto','area','departamento',
                    'tipo de servicio','tipo de contrato','tipo de cliente','forma de pago',
                    'metodo de pago','regimen','giro'];
@@ -1660,10 +1991,41 @@
   function chipHtml(v) {
     var txt = String(v == null ? '' : v).trim();
     if (!txt) return '';
+    var fijo = TONO_LINEA[norm(txt)];
+    if (fijo) return '<span class="tag" style="background:' + fijo.bg + ';color:' + fijo.fg + '">' +
+                     esc(txt) + '</span>';
     var cls = chipClassFor(txt);
     if (cls) return '<span class="' + cls + '">' + esc(txt) + '</span>';
     var t = CHIP_TONES[chipHash(norm(txt))];
     return '<span class="tag" style="background:' + t.bg + ';color:' + t.fg + '">' + esc(txt) + '</span>';
+  }
+
+  // Nombre con su inicial en un círculo del mismo tono estable que las pastillas.
+  function quienHtml(v) {
+    var txt = String(v == null ? '' : v).trim();
+    if (!txt) return '';
+    var t = CHIP_TONES[chipHash(norm(txt))];
+    var ini = txt.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g, '').trim().charAt(0).toUpperCase() || '·';
+    return '<span class="who"><i style="background:' + t.bg + ';color:' + t.fg + '">' + esc(ini) +
+           '</i><span>' + esc(txt) + '</span></span>';
+  }
+  function esColumnaNombre(hh) {
+    var n = norm(hh);
+    return n === 'cliente' || n === 'proveedor' || n === 'colaborador' || n === 'nombre';
+  }
+  function esColumnaPorCobrar(hh) {
+    var n = norm(hh);
+    return n === 'cuentas por cobrar' || n === 'por cobrar' || n === 'saldo pendiente';
+  }
+  // El monto con el signo de pesos atenuado, para que la cifra se lea primero.
+  function dineroHtml(raw, extra) {
+    var n = parseNumber(raw);
+    if (n === null) return '';
+    var txt = formatMoney(n);
+    var cur = txt.charAt(0) === '$' ? '$' : '';
+    var resto = cur ? txt.slice(1) : txt;
+    return '<span class="money' + (extra ? ' ' + extra : '') + '"><span class="cur">' + cur +
+           '</span>' + esc(resto) + '</span>';
   }
 
   function renderTable() {
@@ -1719,7 +2081,32 @@
           var shown = isMoneyCol(h) ? formatMoney(raw)
                     : (isDateCol(h) ? formatDateCell(raw) : (raw == null ? '' : raw));
           var e = esc(shown);
-          var cellHtml = (!isMoneyCol(h) && !isDateCol(h) && isChipCol(h)) ? chipHtml(shown) : e;
+          var cellHtml;
+          if (isMoneyCol(h)) {
+            var nv = parseNumber(raw);
+            if (esColumnaPorCobrar(h)) {
+              // Lo que falta por cobrar salta a la vista; lo saldado se apaga.
+              if (nv === null || nv === 0) {
+                cellHtml = '<span class="tag tag-ok">Pagado</span>';
+              } else {
+                var tot = parseNumber(r[colBy('Total')]) || 0;
+                var pagado = tot > 0 ? Math.max(0, Math.min(100, (1 - nv / tot) * 100)) : 0;
+                cellHtml = '<span class="cobro"><span class="bar"><i style="width:' +
+                           pagado.toFixed(0) + '%"></i></span>' + dineroHtml(nv, 'due') + '</span>';
+              }
+            } else {
+              cellHtml = dineroHtml(raw, (norm(h) === 'total' ? 'big' : '') +
+                                         (nv === 0 ? ' zero' : ''));
+            }
+          } else if (isDateCol(h)) {
+            cellHtml = e;
+          } else if (esColumnaNombre(h)) {
+            cellHtml = quienHtml(shown);
+          } else if (isChipCol(h)) {
+            cellHtml = chipHtml(shown);
+          } else {
+            cellHtml = e;
+          }
           html += '<td' + cls + ws + ' title="' + e.replace(/"/g, '&quot;') + '">' + cellHtml + '</td>';
         }
       });
