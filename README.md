@@ -1,6 +1,6 @@
 # Aplicación de Ideas — Panel de datos (ERP)
 
-**Versión 2026.08.24-007**
+**Versión 2026.08.24-008**
 
 El número de versión sale en dos lados del panel: abajo del menú, arriba de "Cerrar Sesión",
 y también en la pantalla de login. Sirve para confirmar de un vistazo que el ZIP que subiste
@@ -48,6 +48,9 @@ api/inicio.js         Avisos y pendientes de la pantalla de Inicio
 api/dashboard.js      Agregados y gráficas del Dashboard
 api/importar.js       Lee los PDF de estados de cuenta y los manda a las hojas
 api/inversiones.js    Indicadores de rendimiento por plataforma de inversión
+api/finanzas.js       Ingresos y egresos (diagnóstico + movimientos)
+
+lib/finanzas.js       Lectura del archivo Ingresos-Egresos
 
 lib/estados.js        Lector de estados de cuenta (Prestadero, Briq, Yo te Presto)
 ```
@@ -333,6 +336,58 @@ anualizado, para ver si la cosa mejora o se deteriora.
 
 Todo sale de los mismos renglones que escribe el importador de PDF, así que cada mes que
 importes un estado de cuenta, esta pantalla se actualiza sola.
+
+---
+
+## Ingresos y egresos
+
+Menú → **Finanzas → Ingresos y Egresos**. Lee las pestañas `INGRESOS` y `EGRESOS` del archivo
+`1YMP_ZtP…` (Dashboard Ingresos-Egresos). Salió del módulo `ingresos-egresos`, adaptado para
+vivir aquí: usa la misma cuenta de servicio y **pide token**, porque estos números no deben
+quedar en una ruta abierta.
+
+Se configura por variables de entorno; si no están, usa los valores por defecto:
+
+| Variable | Por defecto |
+|---|---|
+| `SHEET_FINANZAS` | el id del archivo de Aplicación de Ideas |
+| `TAB_INGRESOS` / `TAB_EGRESOS` | `INGRESOS` / `EGRESOS` |
+| `CONCEPTOS_NO_FLUJO` | traspasos y pagos de tarjeta |
+| `CONCEPTOS_NO_OPERACION` | aportaciones, retiros de inversión, deuda |
+| `SIGNO_EGRESOS` | `auto` |
+
+### Las tres decisiones que trae el módulo
+
+**Los nombres de columna se buscan por varios candidatos.** Buscar uno solo hace que el dato se
+lea como cero sin avisar, y un cero se ve igual que "no hubo movimientos". Esta hoja usa
+`Método de cobro` en INGRESOS y `Método de pago` en EGRESOS: se agregaron los dos.
+
+**Los traspasos no cuentan.** Mueven dinero de un bolsillo a otro. Si se cuentan, los dos lados
+del mes salen inflados por el mismo monto. Hay una casilla para incluirlos cuando toque cuadrar
+contra el estado de cuenta del banco, donde sí aparecen.
+
+**El signo se deduce.** Si el total de un lado sale negativo, se voltea el lado completo y se
+avisa en `lectura.seVolteoElSigno`.
+
+### Lo que se le agregó
+
+**Separación entre flujo y operación.** Una aportación de capital del socio, un retiro de
+principal de Prestadero y un préstamo contratado son dinero que entra, pero no son ventas. El
+panel los lee y los muestra, y con la casilla **"Solo operación"** los quita para ver el negocio
+sin ellos. La diferencia no es menor: en 2026, $381,998 de los ingresos y $270,000 de los
+egresos no vienen de la operación.
+
+**El bloque "De dónde salió este número"**, desplegable debajo de cada desglose. Es lo que
+permite explicar una diferencia en vez de discutirla: cuántos renglones tiene la hoja, cuántos
+entraron, cuántos se quedaron fuera por fecha ilegible, por año, por traspaso. Cuando el total
+no coincide con el que se ve en la pestaña, la diferencia está casi siempre ahí.
+
+### Ojo con el vercel.json del módulo
+
+El módulo original traía `"rewrites": [{ "source": "/api/(.*)", "destination": "/api/finanzas" }]`.
+**No se copió a propósito**: mandaría *todas* las rutas del panel —login, menu, data— a finanzas
+y tumbaría el sistema completo. Aquí la acción va en el cuerpo (`accion: 'diagnostico'` o
+`'movimientos'`) y el ruteo normal de Vercel por archivo sigue funcionando.
 
 ---
 

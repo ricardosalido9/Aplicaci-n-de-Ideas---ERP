@@ -1,6 +1,6 @@
 # Pendientes — Panel de Aplicación de Ideas
 
-Actualizado en la versión **2026.08.24-007**.
+Actualizado en la versión **2026.08.24-008**.
 
 ---
 
@@ -23,7 +23,8 @@ Actualizado en la versión **2026.08.24-007**.
 | 6 | Crear la pestaña **`Puerto Escondido`** | Columnas: `Fecha ǀ Concepto ǀ Tipo ǀ Monto ǀ Comentarios`, donde Tipo es *Aportación* o *Recuperación*. Con eso el panel calcula cuánto llevas recuperado de los $8,058,857 y el % de avance. Ofrecí vaciarte los movimientos de `Call Mary` a ese formato |
 | 7 | Borrar las filas **50 y 51** de `Ventas 2026` | Están vacías con un 0 arrastrado |
 | 8 | Decidir si se usa la columna **`Tipo de Venta`** | Está vacía en los 68 registros; hoy no aparece en el formulario |
-| 9 | Pasar el **código base de Ingresos y Egresos** | Lo dijiste en la última vuelta; sin eso no puedo conectar la hoja `1YMP_ZtP…` |
+| 9 | Compartir el archivo **Ingresos-Egresos** (`1YMP_ZtP…`) con la cuenta de servicio | Basta con permiso de lector |
+| 10 | Revisar los renglones **sin fecha** de INGRESOS (33) y EGRESOS (83) | Son filas arrastradas con solo el `Mes`; no cuentan en ningún total. Si alguna sí traía datos, se está perdiendo |
 
 ---
 
@@ -40,6 +41,7 @@ Actualizado en la versión **2026.08.24-007**.
 | 006 | Importador de estados de cuenta en PDF (Prestadero, Briq, Yo te Presto) con vista previa, cuadre automático y antiduplicados |
 | 006 | Ventas visual: tarjetas de dinero, pastillas de color fijo por línea, cliente con inicial, barra de avance de cobranza |
 | 007 | Análisis de inversiones: rendimiento anualizado, costos, morosidad y serie de 31 meses por plataforma |
+| 008 | Ingresos y Egresos conectado, con el módulo que mandaste integrado: traspasos fuera, signo deducido, separación entre flujo y operación, y el bloque "de dónde salió este número" |
 
 ---
 
@@ -47,7 +49,6 @@ Actualizado en la versión **2026.08.24-007**.
 
 | # | Qué | Nota |
 |---|---|---|
-| 10 | Conectar la hoja de **Ingresos y Egresos** | Esperando tu código base |
 | 11 | Importar movimientos por **CSV** de las tres plataformas | Más estable que el PDF: si cambian el diseño del estado de cuenta, el lector de PDF se puede romper y un CSV no. El PDF queda para el cierre rápido; el CSV para el detalle movimiento a movimiento |
 | 12 | Conectar las áreas que siguen en gris | Prospectos, Cotizaciones, Clientes, Contratos, Proyectos, Compras, Activos, RRHH, Finanzas y Contabilidad ya están en el menú pero sin hoja |
 | 13 | Alerta de **capital ocioso** | El importador ya guarda el "Dinero disponible" de cada plataforma; falta el aviso en Inicio cuando pase de cierto monto |

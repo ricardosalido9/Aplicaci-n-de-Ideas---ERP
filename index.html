@@ -265,6 +265,27 @@
   /* Importador de estados de cuenta */
   #impView { display:none; }
   #invView { display:none; }
+  #finView { display:none; }
+  .fin-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+  .fin-bar select { padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--surface); font:inherit; font-size:13.5px; color:var(--ink); }
+  .fin-bar label.sw { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--slate);
+    background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:7px 13px;
+    cursor:pointer; }
+  .fin-bar label.sw input { margin:0; }
+  .lectura { margin-top:14px; }
+  .lectura summary { cursor:pointer; font-size:12.5px; color:var(--slate); padding:6px 0;
+    list-style:none; }
+  .lectura summary::-webkit-details-marker { display:none; }
+  .lectura summary:hover { color:var(--ink); }
+  .lectura summary::before { content:'▸ '; }
+  .lectura[open] summary::before { content:'▾ '; }
+  .lectura .lg { display:grid; gap:4px 20px; grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    padding:10px 0 2px; }
+  .lectura .lg div { display:flex; justify-content:space-between; font-size:12.5px;
+    border-bottom:1px solid var(--line); padding:5px 0; }
+  .lectura .lg div span:first-child { color:var(--slate); }
+  .lectura .lg div.ojo span { color:var(--warn); font-weight:500; }
   .inv-note { font-size:12.5px; color:var(--slate); margin:-6px 0 16px; }
   .inv-warn { background:var(--danger-bg); color:var(--danger); border-radius:10px;
     padding:11px 14px; font-size:13px; margin-top:12px; }
@@ -513,7 +534,7 @@
     <div class="login-err" id="loginErr"></div>
     <button class="primary btn-full" id="loginBtn" type="button">Entrar</button>
   </div>
-  <div class="login-ver">Versión 2026.08.24-007</div>
+  <div class="login-ver">Versión 2026.08.24-008</div>
 </div>
 
 <div id="appView">
@@ -532,7 +553,7 @@
     <div class="nav-title">Áreas</div>
     <nav id="navMenu"></nav>
     <div class="nav-foot">
-      <span class="nav-ver" id="navVer">Versión 2026.08.24-007</span>
+      <span class="nav-ver" id="navVer">Versión 2026.08.24-008</span>
       <button class="nav-logout" id="logoutBtn2" type="button">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -557,6 +578,7 @@
       <div id="dashView"></div>
       <div id="impView"></div>
       <div id="invView"></div>
+      <div id="finView"></div>
       <div id="tableView">
       <div class="page-head">
         <div class="ph-l">
@@ -691,7 +713,7 @@
 
   // Versión de este archivo. Debe coincidir con la de lib/core.js: si no coincide,
   // el despliegue quedó a medias (index.html nuevo con API vieja, o al revés).
-  var VERSION = '2026.08.24-007';
+  var VERSION = '2026.08.24-008';
 
   function revisarVersion(delServidor) {
     var el = document.getElementById('navVer');
@@ -761,6 +783,7 @@
     ventas_puerto: 'Retorno de la inversión en Puerto Escondido',
     importar: 'Estados de cuenta de las plataformas',
     inv_analisis: 'Rendimiento y salud de cada plataforma',
+    fin_flujo: 'Flujo de efectivo del negocio',
     cxc: 'Saldos pendientes de cobro',
     cli_directorio: 'Directorio de clientes',
     cli_contratos: 'Contratos vigentes',
@@ -818,11 +841,13 @@
     var esHome = (key === 'inicio');
     var esImp  = (key === 'importar');
     var esInv  = (key === 'inv_analisis');
-    var esEspecial = esDash || esHome || esImp || esInv;
+    var esFin  = (key === 'fin_flujo');
+    var esEspecial = esDash || esHome || esImp || esInv || esFin;
     document.getElementById('homeView').style.display = esHome ? 'block' : 'none';
     document.getElementById('dashView').style.display = esDash ? 'block' : 'none';
     document.getElementById('impView').style.display = esImp ? 'block' : 'none';
     document.getElementById('invView').style.display = esInv ? 'block' : 'none';
+    document.getElementById('finView').style.display = esFin ? 'block' : 'none';
     document.getElementById('tableView').style.display = esEspecial ? 'none' : 'block';
     document.querySelector('.controls').style.display = esEspecial ? 'none' : 'flex';
     document.getElementById('filterBar').style.display = esEspecial ? 'none' : 'flex';
@@ -832,6 +857,7 @@
     if (esDash) { loadDashboard(); return; }
     if (esImp)  { renderImportador(); return; }
     if (esInv)  { loadInversiones(); return; }
+    if (esFin)  { loadFinanzas(); return; }
 
     loadArea();
   }
@@ -2129,6 +2155,148 @@
         if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+  }
+
+  // ===== Ingresos y egresos: el flujo de efectivo del negocio =====
+  var finData = null;
+  var finOpts = { anio: new Date().getFullYear(), agrupar: 'concepto',
+                  incluirTraspasos: false, soloOperacion: false };
+
+  function loadFinanzas() {
+    var v = document.getElementById('finView');
+    if (!finData) v.innerHTML = '<div class="state">Cargando…</div>';
+    api('finanzas', {
+      token: state.token, accion: 'movimientos',
+      anio: finOpts.anio, agrupar: finOpts.agrupar,
+      incluirTraspasos: finOpts.incluirTraspasos,
+      soloOperacion: finOpts.soloOperacion
+    }).then(function (res) { finData = res; renderFinanzas(); })
+      .catch(function (e) { v.innerHTML = '<div class="state">' + esc(e.message || e) + '</div>'; });
+  }
+
+  function ladoDe(nombre) {
+    return ((finData && finData.lados) || []).filter(function (x) { return x.lado === nombre; })[0] || {};
+  }
+  // El bloque que permite explicar una diferencia en vez de discutirla
+  function lecturaHTML(L) {
+    var l = L.lectura; if (!l) return '';
+    var fila = function (k, v, ojo) {
+      return '<div' + (ojo ? ' class="ojo"' : '') + '><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>';
+    };
+    var h = '<details class="lectura"><summary>De dónde salió este número</summary><div class="lg">';
+    h += fila('Renglones en la hoja', fmtNum(l.renglones));
+    h += fila('Entraron al total', fmtNum(l.entraron));
+    if (l.sinFechaLegible) h += fila('Sin fecha legible', fmtNum(l.sinFechaLegible), true);
+    if (l.deOtroAnio) h += fila('De otro año', fmtNum(l.deOtroAnio));
+    if (l.sinMonto) h += fila('Sin monto', fmtNum(l.sinMonto));
+    if (l.traspasosExcluidos) h += fila('Traspasos excluidos', fmtNum(l.traspasosExcluidos));
+    if (l.noOperativos) h += fila('No son de operación', fmtNum(l.noOperativos) + ' · ' + formatMoney(l.montoNoOperativo));
+    if (l.renglonesNegativos) h += fila('Renglones negativos', fmtNum(l.renglonesNegativos) + ' · ' + formatMoney(l.montoNegativo), true);
+    if (l.seVolteoElSigno) h += fila('Se volteó el signo', 'sí');
+    h += fila('Columna de monto', l.columnasUsadas && l.columnasUsadas.monto ? l.columnasUsadas.monto : '—');
+    h += fila('Columna de fecha', l.columnasUsadas && l.columnasUsadas.fecha ? l.columnasUsadas.fecha : '—');
+    h += '</div></details>';
+    return h;
+  }
+
+  function renderFinanzas() {
+    var v = document.getElementById('finView');
+    var d = finData || {};
+    var ing = ladoDe('Ingresos'), egr = ladoDe('Egresos');
+
+    var h = '<div class="hero"><h2>Ingresos y egresos</h2>' +
+      '<p>Lo que entra y lo que sale, mes a mes</p></div>';
+
+    // --- Controles ---
+    var anios = (d.anios && d.anios.length) ? d.anios : [finOpts.anio];
+    h += '<div class="fin-bar"><select id="finAnio">';
+    anios.forEach(function (a) {
+      h += '<option value="' + a + '"' + (a === finOpts.anio ? ' selected' : '') + '>' + a + '</option>';
+    });
+    h += '</select><select id="finAgrupar">' +
+      ['concepto', 'categoria', 'subcategoria'].map(function (g) {
+        var lbl = g === 'concepto' ? 'Por concepto' : (g === 'categoria' ? 'Por categoría' : 'Por subcategoría');
+        return '<option value="' + g + '"' + (finOpts.agrupar === g ? ' selected' : '') + '>' + lbl + '</option>';
+      }).join('') + '</select>' +
+      '<label class="sw"><input type="checkbox" id="finOper"' + (finOpts.soloOperacion ? ' checked' : '') +
+        '> Solo operación</label>' +
+      '<label class="sw"><input type="checkbox" id="finTras"' + (finOpts.incluirTraspasos ? ' checked' : '') +
+        '> Incluir traspasos</label></div>';
+
+    if (ing.error || egr.error) {
+      [ing, egr].forEach(function (L) {
+        if (L.error) h += '<div class="imp-err" style="margin-bottom:12px"><b>' + esc(L.pestana || '') +
+          '</b>: ' + esc(L.error) + ' ' + esc(L.pista || '') + '</div>';
+      });
+      v.innerHTML = h; conectarFinanzas(); return;
+    }
+
+    var r = d.resultado || {};
+    var positivo = (r.diferencia || 0) >= 0;
+    h += '<div class="dash-section"><h3>' + finOpts.anio +
+      (finOpts.soloOperacion ? ' · solo operación' : '') + '</h3><div class="kpi-grid">' +
+      '<div class="kpi dark"><div class="k">Entró</div><div class="v" title="' + esc(formatMoney(r.ingresos || 0)) +
+        '">' + esc(fmtMoneyShort(r.ingresos || 0)) + '</div><div class="s">' +
+        fmtNum(ing.movimientos || 0) + ' movimientos</div></div>' +
+      '<div class="kpi"><div class="k">Salió</div><div class="v" title="' + esc(formatMoney(r.egresos || 0)) +
+        '">' + esc(fmtMoneyShort(r.egresos || 0)) + '</div><div class="s">' +
+        fmtNum(egr.movimientos || 0) + ' movimientos</div></div>' +
+      '<div class="kpi"><div class="k">Diferencia</div><div class="v" style="color:' +
+        (positivo ? 'var(--success)' : 'var(--danger)') + '">' +
+        (positivo ? '' : '−') + esc(fmtMoneyShort(Math.abs(r.diferencia || 0))) + '</div>' +
+        '<div class="s">' + (positivo ? 'entró más de lo que salió' : 'salió más de lo que entró') +
+        '</div></div>' +
+      '</div></div>';
+
+    // --- Mes a mes ---
+    var serieI = {}, serieE = {};
+    (ing.porMes || []).forEach(function (x) {
+      serieI[finOpts.anio + '-' + (x.mes < 10 ? '0' : '') + x.mes] = x.monto;
+    });
+    (egr.porMes || []).forEach(function (x) {
+      serieE[finOpts.anio + '-' + (x.mes < 10 ? '0' : '') + x.mes] = x.monto;
+    });
+    h += '<div class="dash-section"><h3>Mes a mes</h3><div class="dash-cols">' +
+      '<div class="panel"><h4>Lo que entró</h4><div class="panel-body">' +
+        chartHTML(serieI, { money: true }) + '</div></div>' +
+      '<div class="panel"><h4>Lo que salió</h4><div class="panel-body">' +
+        chartHTML(serieE, { money: true }) + '</div></div>' +
+      '</div></div>';
+
+    // --- Desglose ---
+    var etiqueta = finOpts.agrupar === 'concepto' ? 'concepto'
+                 : (finOpts.agrupar === 'categoria' ? 'categoría' : 'subcategoría');
+    function grupoPanel(L, titulo) {
+      var o = {};
+      // Se pasan todos: barsHTML enseña los primeros pero el total suma completo
+      (L.grupos || []).forEach(function (g) { o[g.grupo] = g.monto; });
+      var noOper = (L.grupos || []).filter(function (g) { return g.operativo === false; });
+      return '<div class="panel"><h4>' + esc(titulo) + ' por ' + esc(etiqueta) + '</h4><div class="panel-body">' +
+        barsHTML(o, { money: true, limit: 12 }) +
+        (noOper.length && !finOpts.soloOperacion
+          ? '<div class="imp-aviso" style="margin-top:12px">De aquí, ' +
+            esc(formatMoney(noOper.reduce(function (a, g) { return a + g.monto; }, 0))) +
+            ' no viene de la operación: es capital, deuda o principal que regresa. ' +
+            'Prende "Solo operación" para verlo sin eso.</div>'
+          : '') +
+        lecturaHTML(L) + '</div></div>';
+    }
+    h += '<div class="dash-section"><h3>Desglose</h3><div class="dash-cols">' +
+      grupoPanel(ing, 'Ingresos') + grupoPanel(egr, 'Egresos') + '</div></div>';
+
+    v.innerHTML = h;
+    conectarFinanzas();
+  }
+
+  function conectarFinanzas() {
+    var a = document.getElementById('finAnio');
+    if (a) a.addEventListener('change', function () { finOpts.anio = +a.value; loadFinanzas(); });
+    var g = document.getElementById('finAgrupar');
+    if (g) g.addEventListener('change', function () { finOpts.agrupar = g.value; loadFinanzas(); });
+    var o = document.getElementById('finOper');
+    if (o) o.addEventListener('change', function () { finOpts.soloOperacion = o.checked; loadFinanzas(); });
+    var t = document.getElementById('finTras');
+    if (t) t.addEventListener('change', function () { finOpts.incluirTraspasos = t.checked; loadFinanzas(); });
   }
 
   function loadDashboard() {
